@@ -1,0 +1,69 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeliverableMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Deliverable">
+        select deliverable.*,
+        project.title as projectTitle,
+        project.status as projectStatus,
+        submission.title as submissionTitle,
+        user.name as freelancerName
+        from deliverable
+        left join project on deliverable.project_id = project.id
+        left join submission on deliverable.submission_id = submission.id
+        left join freelancer on deliverable.freelancer_id = freelancer.id
+        left join user on freelancer.user_id = user.id
+        <where>
+            <if test="submissionId != null"> and deliverable.submission_id = #{submissionId}</if>
+            <if test="projectId != null"> and deliverable.project_id = #{projectId}</if>
+            <if test="freelancerId != null"> and deliverable.freelancer_id = #{freelancerId}</if>
+            <if test="status != null and status != ''"> and deliverable.status = #{status}</if>
+        </where>
+        order by deliverable.created_at desc
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Deliverable" useGeneratedKeys="true" keyProperty="id">
+        insert into deliverable
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="submissionId != null">submission_id,</if>
+            <if test="projectId != null">project_id,</if>
+            <if test="freelancerId != null">freelancer_id,</if>
+            <if test="title != null">title,</if>
+            <if test="description != null">description,</if>
+            <if test="status != null">status,</if>
+            <if test="submitCount != null">submit_count,</if>
+            <if test="submittedAt != null">submitted_at,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="submissionId != null">#{submissionId},</if>
+            <if test="projectId != null">#{projectId},</if>
+            <if test="freelancerId != null">#{freelancerId},</if>
+            <if test="title != null">#{title},</if>
+            <if test="description != null">#{description},</if>
+            <if test="status != null">#{status},</if>
+            <if test="submitCount != null">#{submitCount},</if>
+            <if test="submittedAt != null">#{submittedAt},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Deliverable">
+        update deliverable
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="submitCount != null">submit_count = #{submitCount},</if>
+            <if test="submittedAt != null">submitted_at = #{submittedAt},</if>
+            <if test="reviewedAt != null">reviewed_at = #{reviewedAt},</if>
+            <if test="reviewComment != null">review_comment = #{reviewComment},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from deliverable where id = #{id}
+    </delete>
+
+</mapper>
+

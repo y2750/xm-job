@@ -1,85 +1,128 @@
 <template>
   <div class="login-container">
     <div class="login-box">
-      <div style="font-weight: bold; font-size: 24px; text-align: center; margin-bottom: 30px; color: #1450aa">欢 迎 注 册</div>
-      <el-form ref="formRef" :model="data.form" :rules="data.rules">
-        <el-form-item prop="username">
-          <el-input :prefix-icon="User" size="large" v-model="data.form.username" placeholder="请输入账号"></el-input>
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input show-password :prefix-icon="Lock" size="large" v-model="data.form.password" placeholder="请输入密码"></el-input>
-        </el-form-item>
-        <el-form-item prop="confirmPassword">
-          <el-input show-password :prefix-icon="Lock" size="large" v-model="data.form.confirmPassword" placeholder="请确认密码"></el-input>
-        </el-form-item>
-        <el-form-item prop="name">
-          <el-input :prefix-icon="User" size="large" v-model="data.form.name" placeholder="请输入名称"></el-input>
-        </el-form-item>
-        <el-form-item prop="role">
-          <el-select size="large" v-model="data.form.role" placeholder="请选择角色">
-            <el-option value="EMPLOY" label="企业"></el-option>
-            <el-option value="USER" label="用户"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button size="large" type="primary" style="width: 100%" @click="login">注 册</el-button>
-        </el-form-item>
+      <div style="font-weight: bold; font-size: 24px; text-align: center; margin-bottom: 30px; color: #1450aa">欢迎注册</div>
+      <a-form :model="form" :rules="rules" ref="formRef" layout="vertical">
+        <a-form-item name="username" label="账号">
+          <a-input v-model:value="form.username" placeholder="请输入账号" size="large">
+            <template #prefix>
+              <UserOutlined />
+            </template>
+          </a-input>
+        </a-form-item>
+        <a-form-item name="password" label="密码">
+          <a-input-password v-model:value="form.password" placeholder="请输入密码" size="large">
+            <template #prefix>
+              <LockOutlined />
+            </template>
+          </a-input-password>
+        </a-form-item>
+        <a-form-item name="confirmPassword" label="确认密码">
+          <a-input-password v-model:value="form.confirmPassword" placeholder="请确认密码" size="large">
+            <template #prefix>
+              <LockOutlined />
+            </template>
+          </a-input-password>
+        </a-form-item>
+        <a-form-item name="name" label="名称">
+          <a-input v-model:value="form.name" placeholder="请输入名称" size="large">
+            <template #prefix>
+              <UserOutlined />
+            </template>
+          </a-input>
+        </a-form-item>
+        <a-form-item name="userType" label="用户类型">
+          <a-radio-group v-model:value="form.userType" size="large">
+            <a-radio value="freelancer">自由职业者</a-radio>
+            <a-radio value="enterprise">企业</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" size="large" block @click="handleRegister" :loading="loading">注 册</a-button>
+        </a-form-item>
         <div style="text-align: right">
           已有账号？请 <a href="/login">登录</a>
         </div>
-      </el-form>
+      </a-form>
     </div>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from "vue";
-import { User, Lock } from "@element-plus/icons-vue";
+import { UserOutlined, LockOutlined } from "@ant-design/icons-vue";
 import request from "@/utils/request.js";
-import {ElMessage} from "element-plus";
+import { message } from "ant-design-vue";
 import router from "@/router/index.js";
 
-const validatePass = (rule, value, callback) => {
+const formRef = ref();
+const loading = ref(false);
+
+const form = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  name: '',
+  userType: 'freelancer'
+});
+
+const validateConfirmPassword = async (_rule, value) => {
   if (!value) {
-    callback(new Error('请确认密码'))
-  } else {
-    if (value !== data.form.password) {
-      callback(new Error("确认密码跟原密码不一致!"))
-    }
-    callback()
+    return Promise.reject('请确认密码');
   }
-}
-const data = reactive({
-  form: { },
-  rules: {
-    username: [
-      { required: true, message: '请输入账号', trigger: 'blur' }
-    ],
-    password: [
-      { required: true, message: '请输入密码', trigger: 'blur' }
-    ],
-    confirmPassword: [
-        { validator: validatePass, trigger: 'blur' }
-    ]
+  if (value !== form.password) {
+    return Promise.reject('确认密码与原密码不一致');
   }
-})
+  return Promise.resolve();
+};
 
-const formRef = ref()
+const rules = {
+  username: [
+    { required: true, message: '请输入账号', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入名称', trigger: 'blur' }
+  ],
+  userType: [
+    { required: true, message: '请选择用户类型', trigger: 'change' }
+  ]
+};
 
-const login = () => {
-  formRef.value.validate(valid => {
-    if (valid) { // 表示表单校验通过
-      request.post('/register', data.form).then(res => {
-        if (res.code === '200') {
-          ElMessage.success('注册成功')
-          router.push('/login')
-        } else {
-          ElMessage.error(res.msg)
-        }
-      })
+const handleRegister = async () => {
+  try {
+    await formRef.value.validate();
+    loading.value = true;
+    
+    const registerUrl = form.userType === 'freelancer' 
+      ? '/api/auth/register/freelancer' 
+      : '/api/auth/register/enterprise';
+    
+    const res = await request.post(registerUrl, {
+      username: form.username,
+      password: form.password,
+      name: form.name
+    });
+    
+    if (res.code === '200') {
+      message.success('注册成功');
+      router.push('/login');
+    } else {
+      message.error(res.msg);
     }
-  })
-}
+  } catch (error) {
+    console.error('注册失败', error);
+  } finally {
+    loading.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -93,9 +136,9 @@ const login = () => {
 }
 .login-box {
   width: 400px;
-  padding: 30px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  background-color: rgba(255, 255, 255, 0.5);
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
 }
 </style>

@@ -18,6 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/login",
                         "/register",
+                        "/api/auth/**",  // 排除认证相关接口（登录、注册）
                         "/files/**",
                         "/notice/selectAll",
                         "/advertise/selectAll",

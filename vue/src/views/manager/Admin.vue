@@ -1,187 +1,216 @@
 <template>
-  <div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-input v-model="data.name" prefix-icon="Search" style="width: 240px; margin-right: 10px" placeholder="请输入名称查询"></el-input>
-      <el-button type="info" plain @click="load">查询</el-button>
-      <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
-    </div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-button type="primary" plain @click="handleAdd">新增</el-button>
-      <el-button type="danger" plain @click="delBatch">批量删除</el-button>
-    </div>
+  <a-card>
+    <template #title>
+      <h3>管理员信息管理</h3>
+    </template>
+    
+    <a-button type="primary" style="margin-bottom: 20px" @click="handleAdd">新增管理员</a-button>
 
-    <div class="card" style="margin-bottom: 5px">
-      <el-table stripe :data="data.tableData" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="username" label="账号" />
-        <el-table-column prop="avatar" label="头像">
-          <template v-slot="scope">
-            <el-image style="width: 40px; height: 40px; border-radius: 50%; display: block" v-if="scope.row.avatar"
-                      :src="scope.row.avatar" :preview-src-list="[scope.row.avatar]" preview-teleported></el-image>
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="role" label="角色" />
-        <el-table-column prop="phone" label="电话" />
-        <el-table-column prop="email" label="邮箱" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template v-slot="scope">
-            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)"></el-button>
-            <el-button type="danger" circle :icon="Delete" @click="del(scope.row.id)"></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <div class="card" v-if="data.total">
-      <el-pagination @current-change="load" background layout="prev, pager, next" :page-size="data.pageSize" v-model:current-page="data.pageNum" :total="data.total" />
-    </div>
-
-    <el-dialog title="管理员信息" v-model="data.formVisible" width="40%" destroy-on-close>
-      <el-form ref="form" :model="data.form" label-width="70px" style="padding: 20px">
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="data.form.username" placeholder="请输入用户名"></el-input>
-        </el-form-item>
-        <el-form-item prop="avatar" label="头像">
-          <el-upload
-              :action="baseUrl + '/files/upload'"
-              :on-success="handleFileUpload"
-              list-type="picture"
-              >
-            <el-button type="primary">点击上传</el-button>
-          </el-upload>
-        </el-form-item>
-        <el-form-item prop="name" label="姓名">
-          <el-input v-model="data.form.name" placeholder="请输入姓名"></el-input>
-        </el-form-item>
-        <el-form-item prop="phone" label="电话">
-          <el-input v-model="data.form.phone" placeholder="请输入电话"></el-input>
-        </el-form-item>
-        <el-form-item prop="email" label="邮箱">
-          <el-input v-model="data.form.email" placeholder="请输入邮箱"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="data.formVisible = false">取 消</el-button>
-          <el-button type="primary" @click="save">确 定</el-button>
-        </span>
+    <!-- 管理员列表 -->
+    <a-table
+      :columns="columns"
+      :data-source="adminList"
+      :pagination="pagination"
+      :loading="loading"
+      row-key="id"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'action'">
+          <a-button type="link" @click="handleEdit(record)">编辑</a-button>
+          <a-button type="link" danger @click="handleDelete(record.id)" :disabled="record.id === currentUserId">删除</a-button>
+        </template>
       </template>
-    </el-dialog>
-  </div>
+    </a-table>
+
+    <!-- 新增/编辑弹窗 -->
+    <a-modal
+      v-model:open="modalVisible"
+      :title="modalTitle"
+      @ok="handleSubmit"
+      @cancel="handleCancel"
+    >
+      <a-form :model="form" :rules="rules" ref="formRef" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="账号" name="username">
+          <a-input v-model:value="form.username" :disabled="!!form.id" placeholder="请输入账号" />
+        </a-form-item>
+        <a-form-item label="姓名" name="name">
+          <a-input v-model:value="form.name" placeholder="请输入姓名" />
+        </a-form-item>
+        <a-form-item label="电话" name="phone">
+          <a-input v-model:value="form.phone" placeholder="请输入电话" />
+        </a-form-item>
+        <a-form-item label="邮箱" name="email">
+          <a-input v-model:value="form.email" placeholder="请输入邮箱" />
+        </a-form-item>
+        <a-form-item v-if="!form.id" label="密码" name="password">
+          <a-input-password v-model:value="form.password" placeholder="留空则使用默认密码" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+  </a-card>
 </template>
 
 <script setup>
+import { ref, reactive, onMounted, computed } from 'vue'
+import { message, Modal } from 'ant-design-vue'
+import request from '@/utils/request'
 
-import {reactive} from "vue";
-import request from "@/utils/request.js";
-import {ElMessage, ElMessageBox} from "element-plus";
-import {Delete, Edit} from "@element-plus/icons-vue";
+const loading = ref(false)
+const adminList = ref([])
+const modalVisible = ref(false)
+const modalTitle = ref('新增管理员')
+const formRef = ref()
 
-const baseUrl = import.meta.env.VITE_BASE_URL
-
-const data = reactive({
-  formVisible: false,
-  form: {},
-  tableData: [],
-  pageNum: 1,
-  pageSize: 10,
-  total: 0,
-  name: null,
-  ids: []
+const currentUserId = computed(() => {
+  const user = JSON.parse(localStorage.getItem('xm-user') || '{}')
+  return user.id
 })
 
-const load = () => {
-  request.get('/admin/selectPage', {
-    params: {
-      pageNum: data.pageNum,
-      pageSize: data.pageSize,
-      name: data.name
-    }
-  }).then(res => {
-    if (res.code === '200') {
-      data.tableData = res.data?.list || []
-      data.total = res.data?.total
-    }
-  })
-}
-const handleAdd = () => {
-  data.form = {}
-  data.formVisible = true
-}
-const handleEdit = (row) => {
-  data.form = JSON.parse(JSON.stringify(row))
-  data.formVisible = true
-}
-const add = () => {
-  request.post('/admin/add', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
+const form = reactive({
+  id: null,
+  username: '',
+  name: '',
+  phone: '',
+  email: '',
+  password: ''
+})
+
+const rules = {
+  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
 }
 
-const update = () => {
-  request.put('/admin/update', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    }
-  })
-}
-
-const save = () => {
-  data.form.id ? update() : add()
-}
-
-const del = (id) => {
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete('/admin/delete/' + id).then(res => {
-      if (res.code === '200') {
-        ElMessage.success("删除成功")
-        load()
-      } else {
-        ElMessage.error(res.msg)
-      }
-    })
-  }).catch(err => {
-    console.error(err)
-  })
-}
-const delBatch = () => {
-  if (!data.ids.length) {
-    ElMessage.warning("请选择数据")
-    return
+const pagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showTotal: (total) => `共 ${total} 条`,
+  onChange: (page, pageSize) => {
+    pagination.current = page
+    pagination.pageSize = pageSize
+    loadAdmins()
   }
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete("/admin/delete/batch", {data: data.ids}).then(res => {
-      if (res.code === '200') {
-        ElMessage.success('操作成功')
-        load()
-      } else {
-        ElMessage.error(res.msg)
+})
+
+const columns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: '账号', dataIndex: 'username', key: 'username' },
+  { title: '姓名', dataIndex: 'name', key: 'name' },
+  { title: '电话', dataIndex: 'phone', key: 'phone' },
+  { title: '邮箱', dataIndex: 'email', key: 'email' },
+  { title: '操作', key: 'action', width: 150, fixed: 'right' }
+]
+
+const loadAdmins = async () => {
+  loading.value = true
+  try {
+    const res = await request.get('/admin/selectPage', {
+      params: {
+        pageNum: pagination.current,
+        pageSize: pagination.pageSize
       }
     })
-  }).catch(err => {
-    console.error(err)
+    if (res.code === '200') {
+      const data = res.data
+      adminList.value = data.list || []
+      pagination.total = data.total || 0
+    } else {
+      message.error(res.msg || '加载管理员列表失败')
+    }
+  } catch (error) {
+    console.error('加载管理员列表失败:', error)
+    message.error('加载管理员列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleAdd = () => {
+  Object.assign(form, {
+    id: null,
+    username: '',
+    name: '',
+    phone: '',
+    email: '',
+    password: ''
+  })
+  modalTitle.value = '新增管理员'
+  modalVisible.value = true
+}
+
+const handleEdit = (record) => {
+  Object.assign(form, {
+    id: record.id,
+    username: record.username,
+    name: record.name,
+    phone: record.phone,
+    email: record.email,
+    password: ''
+  })
+  modalTitle.value = '编辑管理员'
+  modalVisible.value = true
+}
+
+const handleSubmit = async () => {
+  try {
+    await formRef.value.validate()
+    if (form.id) {
+      // 编辑
+      const res = await request.put('/admin/update', {
+        id: form.id,
+        name: form.name,
+        phone: form.phone,
+        email: form.email
+      })
+      if (res.code === '200') {
+        message.success('更新成功')
+        modalVisible.value = false
+        loadAdmins()
+      } else {
+        message.error(res.msg || '更新失败')
+      }
+    } else {
+      // 新增
+      const res = await request.post('/admin/add', form)
+      if (res.code === '200') {
+        message.success('新增成功')
+        modalVisible.value = false
+        loadAdmins()
+      } else {
+        message.error(res.msg || '新增失败')
+      }
+    }
+  } catch (error) {
+    console.error('提交失败:', error)
+  }
+}
+
+const handleCancel = () => {
+  formRef.value?.resetFields()
+  modalVisible.value = false
+}
+
+const handleDelete = (id) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除此管理员吗？删除后不可恢复。',
+    onOk: async () => {
+      try {
+        const res = await request.delete(`/admin/delete/${id}`)
+        if (res.code === '200') {
+          message.success('删除成功')
+          loadAdmins()
+        } else {
+          message.error(res.msg || '删除失败')
+        }
+      } catch (error) {
+        message.error('删除失败')
+      }
+    }
   })
 }
-const handleSelectionChange = (rows) => {
-  data.ids = rows.map(v => v.id)
-}
 
-const handleFileUpload = (res) => {
-  data.form.avatar = res.data
-}
-
-const reset = () => {
-  data.name = null
-  load()
-}
-
-load()
+onMounted(() => {
+  loadAdmins()
+})
 </script>

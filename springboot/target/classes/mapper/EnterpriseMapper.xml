@@ -1,0 +1,52 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EnterpriseMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Enterprise">
+        select enterprise.*,
+        employ.name as employName, employ.avatar as employAvatar,
+        employ.city as employCity, employ.address as employAddress
+        from enterprise
+        left join employ on enterprise.employ_id = employ.id
+        <where>
+            <if test="employId != null"> and enterprise.employ_id = #{employId}</if>
+            <if test="verified != null"> and enterprise.verified = #{verified}</if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Enterprise" useGeneratedKeys="true" keyProperty="id">
+        insert into enterprise
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="employId != null">employ_id,</if>
+            <if test="businessLicense != null">business_license,</if>
+            <if test="verified != null">verified,</if>
+            <if test="verifiedAt != null">verified_at,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="employId != null">#{employId},</if>
+            <if test="businessLicense != null">#{businessLicense},</if>
+            <if test="verified != null">#{verified},</if>
+            <if test="verifiedAt != null">#{verifiedAt},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Enterprise">
+        update enterprise
+        <set>
+            <if test="businessLicense != null and businessLicense != ''">business_license = #{businessLicense},</if>
+            <if test="verified != null">verified = #{verified},</if>
+            <choose>
+                <when test="verifiedAt != null">verified_at = #{verifiedAt},</when>
+                <when test="verified != null and verified == false">verified_at = NULL,</when>
+            </choose>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from enterprise where id = #{id}
+    </delete>
+
+</mapper>
+

@@ -1,0 +1,60 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Message">
+        select message.*,
+        project.title as projectTitle
+        from message
+        left join project on message.project_id = project.id
+        <where>
+            <if test="projectId != null"> and message.project_id = #{projectId}</if>
+            <if test="recipientId != null"> and message.recipient_id = #{recipientId}</if>
+            <if test="senderId != null"> and message.sender_id = #{senderId}</if>
+            <if test="senderType != null and senderType != ''"> and message.sender_type = #{senderType}</if>
+            <if test="isRead != null"> and message.is_read = #{isRead}</if>
+            <if test="projectTitle != null and projectTitle != ''"> and project.title like concat('%', #{projectTitle}, '%')</if>
+            <if test="content != null and content != ''"> and message.content like concat('%', #{content}, '%')</if>
+            <if test="excludeSubmissionId != null and excludeSubmissionId == true"> and message.submission_id IS NULL</if>
+        </where>
+        order by message.created_at desc
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Message" useGeneratedKeys="true" keyProperty="id">
+        insert into message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">project_id,</if>
+            <if test="submissionId != null">submission_id,</if>
+            <if test="senderId != null">sender_id,</if>
+            <if test="senderType != null">sender_type,</if>
+            <if test="recipientId != null">recipient_id,</if>
+            <if test="content != null">content,</if>
+            <if test="isRead != null">is_read,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">#{projectId},</if>
+            <if test="submissionId != null">#{submissionId},</if>
+            <if test="senderId != null">#{senderId},</if>
+            <if test="senderType != null">#{senderType},</if>
+            <if test="recipientId != null">#{recipientId},</if>
+            <if test="content != null">#{content},</if>
+            <if test="isRead != null">#{isRead},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Message">
+        update message
+        <set>
+            <if test="isRead != null">is_read = #{isRead},</if>
+            <if test="content != null">content = #{content},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from message where id = #{id}
+    </delete>
+
+</mapper>
+

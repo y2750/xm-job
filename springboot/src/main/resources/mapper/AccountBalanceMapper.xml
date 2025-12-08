@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.AccountBalanceMapper">
+    <insert id="insert" parameterType="com.example.entity.AccountBalance" useGeneratedKeys="true" keyProperty="id">
+        insert into account_balance (user_id, user_type, balance, frozen_balance, created_at, updated_at)
+        values (#{userId}, #{userType}, #{balance}, #{frozenBalance}, #{createdAt}, #{updatedAt})
+    </insert>
+    
+    <update id="updateById" parameterType="com.example.entity.AccountBalance">
+        update account_balance
+        <set>
+            <if test="balance != null">balance = #{balance},</if>
+            <if test="frozenBalance != null">frozen_balance = #{frozenBalance},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt}</if>
+        </set>
+        where id = #{id}
+    </update>
+    
+    <select id="selectByUserIdAndType" resultType="com.example.entity.AccountBalance">
+        select * from account_balance
+        where user_id = #{userId} and user_type = #{userType}
+    </select>
+</mapper>
+

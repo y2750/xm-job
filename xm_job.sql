@@ -11,11 +11,34 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 07/12/2025 13:41:58
+ Date: 08/12/2025 17:03:24
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for account_balance
+-- ----------------------------
+DROP TABLE IF EXISTS `account_balance`;
+CREATE TABLE `account_balance`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` int NOT NULL COMMENT '用户ID（企业employ_id或自由职业者user_id）',
+  `user_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户类型：ENTERPRISE/FREELANCER',
+  `balance` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '账户余额',
+  `frozen_balance` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '冻结余额',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_type`(`user_id` ASC, `user_type` ASC) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '账户余额表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of account_balance
+-- ----------------------------
+INSERT INTO `account_balance` VALUES (1, 2, 'ENTERPRISE', 2400.00, 0.00, '2025-12-07 21:11:21', '2025-12-08 15:35:45');
+INSERT INTO `account_balance` VALUES (3, 5, 'FREELANCER', 0.00, 0.00, '2025-12-07 22:38:42', '2025-12-08 16:58:09');
 
 -- ----------------------------
 -- Table structure for admin
@@ -81,6 +104,61 @@ INSERT INTO `collect` VALUES (6, 2, 7);
 INSERT INTO `collect` VALUES (7, 2, 6);
 
 -- ----------------------------
+-- Table structure for deliverable
+-- ----------------------------
+DROP TABLE IF EXISTS `deliverable`;
+CREATE TABLE `deliverable`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '成品ID',
+  `submission_id` int NOT NULL COMMENT '稿件ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `freelancer_id` int NOT NULL COMMENT '自由职业者ID',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '成品标题',
+  `description` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '成品描述',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'SUBMITTED' COMMENT '状态：SUBMITTED（已提交）/APPROVED（验收通过）/REJECTED（验收不通过）/EXPIRED（已过期）',
+  `submit_count` int NOT NULL DEFAULT 1 COMMENT '提交次数（最多3次）',
+  `submitted_at` timestamp NULL DEFAULT NULL COMMENT '提交时间',
+  `reviewed_at` timestamp NULL DEFAULT NULL COMMENT '验收时间',
+  `review_comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '验收意见',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_submission_id`(`submission_id` ASC) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  CONSTRAINT `deliverable_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `submission` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `deliverable_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `deliverable_ibfk_3` FOREIGN KEY (`freelancer_id`) REFERENCES `freelancer` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '成品提交表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of deliverable
+-- ----------------------------
+INSERT INTO `deliverable` VALUES (1, 6, 8, 1, '111', '111', 'APPROVED', 3, '2025-12-08 15:50:08', '2025-12-08 15:53:23', '', '2025-12-08 15:13:01', '2025-12-08 15:53:22');
+
+-- ----------------------------
+-- Table structure for deliverable_attachment
+-- ----------------------------
+DROP TABLE IF EXISTS `deliverable_attachment`;
+CREATE TABLE `deliverable_attachment`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '附件ID',
+  `deliverable_id` int NOT NULL COMMENT '成品ID',
+  `file_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件URL',
+  `file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原文件名',
+  `file_size` bigint NULL DEFAULT NULL COMMENT '文件大小(bytes)',
+  `file_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件类型(ext)',
+  `upload_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_deliverable_id`(`deliverable_id` ASC) USING BTREE,
+  CONSTRAINT `deliverable_attachment_ibfk_1` FOREIGN KEY (`deliverable_id`) REFERENCES `deliverable` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '成品附件表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of deliverable_attachment
+-- ----------------------------
+INSERT INTO `deliverable_attachment` VALUES (1, 1, 'http://localhost:9090/api/attachments/deliverable/download/1', 'OIP.jpg', 11544, 'jpg', '2025-12-08 15:36:40');
+
+-- ----------------------------
 -- Table structure for employ
 -- ----------------------------
 DROP TABLE IF EXISTS `employ`;
@@ -110,6 +188,54 @@ INSERT INTO `employ` VALUES (4, 'xunfei', '123456', '科大讯飞', 'http://loca
 INSERT INTO `employ` VALUES (5, 'huawei', '123456', '华为', 'http://localhost:9090/files/download/1726125435606-huawei.jpg', 'EMPLOY', '上海市', '上海市浦东新区金桥经济技术开发区新金桥路2223号', 11, '10000人以上', '不需要融资', '待审核');
 
 -- ----------------------------
+-- Table structure for enterprise
+-- ----------------------------
+DROP TABLE IF EXISTS `enterprise`;
+CREATE TABLE `enterprise`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '企业ID',
+  `employ_id` int NOT NULL COMMENT '关联Employ表ID',
+  `business_license` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '营业执照',
+  `verified` tinyint(1) NULL DEFAULT 0 COMMENT '是否认证',
+  `verified_at` timestamp NULL DEFAULT NULL COMMENT '认证时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_employ_id`(`employ_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '企业扩展表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of enterprise
+-- ----------------------------
+INSERT INTO `enterprise` VALUES (1, 2, 'http://localhost:9090/files/download/1765175340177-v2-f1d244083449a21ab70d4e949688f55c_r.jpg', 1, '2025-12-08 06:42:11', '2025-12-07 15:07:53', '2025-12-08 14:42:11');
+
+-- ----------------------------
+-- Table structure for freelancer
+-- ----------------------------
+DROP TABLE IF EXISTS `freelancer`;
+CREATE TABLE `freelancer`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '自由职业者ID',
+  `user_id` int NOT NULL COMMENT '关联User表ID',
+  `skills` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '技能标签(逗号分隔)',
+  `portfolio_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '作品集链接',
+  `portfolio_count` int NULL DEFAULT 0 COMMENT '作品数量',
+  `verified` tinyint(1) NULL DEFAULT 0 COMMENT '是否认证',
+  `verified_at` timestamp NULL DEFAULT NULL COMMENT '认证时间',
+  `verification_info` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '认证信息(JSON)',
+  `rating` decimal(3, 2) NULL DEFAULT 0.00 COMMENT '评分',
+  `completed_projects` int NULL DEFAULT 0 COMMENT '完成项目数',
+  `credit_score` int NULL DEFAULT 100 COMMENT '信誉分（默认100分）',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '自由职业者扩展表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of freelancer
+-- ----------------------------
+INSERT INTO `freelancer` VALUES (1, 5, 'Java，python,vue', '', 0, 1, '2025-12-07 09:36:23', NULL, 0.00, 1, 95, '2025-12-07 15:16:40', '2025-12-08 15:53:22');
+
+-- ----------------------------
 -- Table structure for industry
 -- ----------------------------
 DROP TABLE IF EXISTS `industry`;
@@ -136,6 +262,43 @@ INSERT INTO `industry` VALUES (10, '互联网 / 电子商务', '这是互联网 
 INSERT INTO `industry` VALUES (11, '计算机软件', '这是计算机软件');
 
 -- ----------------------------
+-- Table structure for message
+-- ----------------------------
+DROP TABLE IF EXISTS `message`;
+CREATE TABLE `message`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+  `project_id` int NULL DEFAULT NULL COMMENT '项目ID',
+  `submission_id` int NULL DEFAULT NULL COMMENT '稿件ID',
+  `sender_id` int NOT NULL COMMENT '发送者ID',
+  `sender_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '发送者类型：ENTERPRISE/FREELANCER',
+  `recipient_id` int NOT NULL COMMENT '接收者ID',
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '消息内容',
+  `is_read` tinyint(1) NULL DEFAULT 0 COMMENT '是否已读',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_submission_id`(`submission_id` ASC) USING BTREE,
+  INDEX `idx_recipient_id`(`recipient_id` ASC) USING BTREE,
+  INDEX `idx_is_read`(`is_read` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of message
+-- ----------------------------
+INSERT INTO `message` VALUES (1, 1, 5, 5, 'FREELANCER', 2, '111', 0, '2025-12-07 18:39:41');
+INSERT INTO `message` VALUES (2, 1, 5, 2, 'ENTERPRISE', 5, '222', 0, '2025-12-07 18:39:54');
+INSERT INTO `message` VALUES (3, 1, 5, 5, 'FREELANCER', 2, '🙂你好', 0, '2025-12-07 18:46:06');
+INSERT INTO `message` VALUES (4, 1, 5, 5, 'FREELANCER', 2, '你觉得怎么样', 0, '2025-12-07 18:49:49');
+INSERT INTO `message` VALUES (5, 1, 5, 5, 'FREELANCER', 2, '111111111111111111', 0, '2025-12-07 18:55:51');
+INSERT INTO `message` VALUES (6, 1, 5, 2, 'ENTERPRISE', 5, '😃', 0, '2025-12-07 18:59:56');
+INSERT INTO `message` VALUES (7, 1, 5, 5, 'FREELANCER', 2, '5320可以吗', 0, '2025-12-07 21:16:54');
+INSERT INTO `message` VALUES (8, 1, 5, 2, 'ENTERPRISE', 5, '可以😁', 0, '2025-12-07 21:17:24');
+INSERT INTO `message` VALUES (9, 8, 6, 2, 'ENTERPRISE', 5, '合作嘛', 0, '2025-12-07 22:32:48');
+INSERT INTO `message` VALUES (10, 8, 6, 2, 'ENTERPRISE', 5, '低一点', 0, '2025-12-07 22:33:00');
+INSERT INTO `message` VALUES (11, 8, 6, 5, 'FREELANCER', 2, '好的', 0, '2025-12-07 22:33:12');
+INSERT INTO `message` VALUES (13, 8, NULL, 0, 'ENTERPRISE', 5, '您的项目《开发系统》成品验收失败（已超过截止时间），已扣除保证金并赔付给企业。', 1, '2025-12-08 15:35:45');
+
+-- ----------------------------
 -- Table structure for notice
 -- ----------------------------
 DROP TABLE IF EXISTS `notice`;
@@ -145,13 +308,46 @@ CREATE TABLE `notice`  (
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '公告内容',
   `time` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '发布时间',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统公告表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统公告表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of notice
 -- ----------------------------
-INSERT INTO `notice` VALUES (2, '项目所有功能开发完毕！', '我的项目所有的功能都开发完啦！真的很有成就感！', '2024-07-16 15:52:22');
-INSERT INTO `notice` VALUES (3, '项目功能都测试完成，准备上线！', '经过半个月的学习和练习，终于把这个项目完成了，可以打包上线了！', '2024-07-16 15:52:56');
+INSERT INTO `notice` VALUES (4, '测试内容', '1111', '2025-12-07 16:11:10');
+
+-- ----------------------------
+-- Table structure for payment_record
+-- ----------------------------
+DROP TABLE IF EXISTS `payment_record`;
+CREATE TABLE `payment_record`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `user_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户类型：ENTERPRISE/FREELANCER',
+  `project_id` int NULL DEFAULT NULL COMMENT '关联项目ID',
+  `submission_id` int NULL DEFAULT NULL COMMENT '关联稿件ID',
+  `payment_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '支付类型：PUBLISH_DEPOSIT（发布保证金）/CONFIRM_PAYMENT（确认合作补款）/ACCEPT_DEPOSIT（接单保证金）/REFUND（退款）/COMPLETION_PAYMENT（完成付款）',
+  `amount` decimal(10, 2) NOT NULL COMMENT '支付金额',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING（待支付）/SUCCESS（成功）/FAILED（失败）',
+  `payment_method` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'MOCK' COMMENT '支付方式：MOCK（模拟支付）',
+  `transaction_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '交易流水号',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '支付记录表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of payment_record
+-- ----------------------------
+INSERT INTO `payment_record` VALUES (1, 2, 'ENTERPRISE', 1, NULL, 'CONFIRM_PAYMENT', 2174.50, 'SUCCESS', 'MOCK', 'MOCK_cdd3e8448a0e4a12b0d5aa76dcd83abf', '确认合作补款（模拟支付）', '2025-12-07 22:00:52', '2025-12-07 22:00:52');
+INSERT INTO `payment_record` VALUES (8, 2, 'ENTERPRISE', 8, NULL, 'PUBLISH_DEPOSIT', 1000.00, 'SUCCESS', 'MOCK', 'MOCK_6554fce90181437da5b58157bdf10382', '项目发布保证金（模拟支付）', '2025-12-07 22:23:54', '2025-12-07 22:23:54');
+INSERT INTO `payment_record` VALUES (9, 2, 'ENTERPRISE', 8, NULL, 'CONFIRM_PAYMENT', 1400.00, 'SUCCESS', 'MOCK', 'MOCK_830c2a1563e74e00aa8459272c8b1544', '确认合作补款（模拟支付）', '2025-12-07 22:33:37', '2025-12-07 22:33:37');
+INSERT INTO `payment_record` VALUES (10, 5, 'FREELANCER', 8, 6, 'ACCEPT_DEPOSIT', 120.00, 'SUCCESS', 'MOCK', 'MOCK_60cb605fadf246d8a3e895c0fde7f9cc', '接单保证金（模拟支付）', '2025-12-07 22:38:45', '2025-12-07 22:38:45');
+INSERT INTO `payment_record` VALUES (11, 2, 'ENTERPRISE', 8, NULL, 'REFUND', 2400.00, 'SUCCESS', 'MOCK', 'MOCK_d7c7deec519e4de8872ee57d7d9f7d88', '项目未完成退款', '2025-12-08 15:35:45', '2025-12-08 15:35:45');
+INSERT INTO `payment_record` VALUES (12, 5, 'FREELANCER', 8, NULL, 'COMPLETION_PAYMENT', 2280.00, 'SUCCESS', 'MOCK', 'MOCK_2fbe11f41f034dac96a5728fc8b943d6', '项目完成付款', '2025-12-08 15:53:23', '2025-12-08 15:53:23');
 
 -- ----------------------------
 -- Table structure for position
@@ -189,6 +385,93 @@ INSERT INTO `position` VALUES (11, '运营经理', 3, 8, '全职', '1到3年', '
 INSERT INTO `position` VALUES (12, '岗位运营', 3, 8, '全职', '应届生', '5-10k', '本科', '福利待遇好,晋升空间大', '<p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">岗位职责：</span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\"> 1、拓展及维护酒店商家，与商家建立长期稳定的合作关系； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">2、通过电话沟通、直面约谈，对酒店进行考察评估、洽谈合作，并根据商家需求制定合理的酒店运营方案； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">3、快速响应公司新产品业务的市场覆盖开拓； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">4、与商家保持紧密联系，处理各类活动、价格调整、到期续签等日常运营事务； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">5、及时处理来自商家及消费者的投诉、反馈、建议等，以提高消费者和商家的满意度。 </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">岗位要求： </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">1、热爱自己的事业，敢于迎接挑战 </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">2、优秀的谈判能力和沟通协调能力，能熟练运用办公软件（word 、excel、ppt）； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">3、执行力强，抗压能力强，有极强的责任心和服务意识； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">4、有较强的学习能力，善于发现问题和总结方法，有强烈的成就动机，能吃苦耐劳；； </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">5、有面销、电销经验，有OTA或酒店行业、互联网销售从业经验者优先 </span></p><p style=\"line-height: 2;\"><span style=\"color: rgb(34, 34, 34); background-color: rgb(255, 255, 255); font-size: 14px;\">欢迎希望更多发展、更大空间、更多成长的同学积极自荐和推荐～</span></p>', '审核通过');
 
 -- ----------------------------
+-- Table structure for project
+-- ----------------------------
+DROP TABLE IF EXISTS `project`;
+CREATE TABLE `project`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '项目ID',
+  `enterprise_id` int NULL DEFAULT NULL COMMENT '发布企业ID',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '项目标题',
+  `description` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '项目描述',
+  `skills_required` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '所需技能标签(逗号分隔)',
+  `budget_min` decimal(10, 2) NULL DEFAULT NULL COMMENT '预算下限',
+  `budget_max` decimal(10, 2) NULL DEFAULT NULL COMMENT '预算上限',
+  `deadline` datetime NULL DEFAULT NULL COMMENT '截止时间',
+  `delivery_deadline` datetime NULL DEFAULT NULL COMMENT '成品提交截止时间',
+  `delivery_requirement` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '交付要求',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '状态：PUBLISHED/CLOSED/CONFIRMED',
+  `confirmed_freelancer_id` int NULL DEFAULT NULL COMMENT '确定合作的自由职业者ID',
+  `paid_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '已支付金额',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_enterprise_id`(`enterprise_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_deadline`(`deadline` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '外包项目表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of project
+-- ----------------------------
+INSERT INTO `project` VALUES (8, 1, '开发系统', '在线管理系统', 'java，前端', 1000.00, 3000.00, '2026-01-01 23:59:59', NULL, '11111', 'COMPLETED', 1, 2400.00, '2025-12-07 22:23:53', '2025-12-08 16:02:24');
+
+-- ----------------------------
+-- Table structure for project_order
+-- ----------------------------
+DROP TABLE IF EXISTS `project_order`;
+CREATE TABLE `project_order`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '接单ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `freelancer_id` int NOT NULL COMMENT '自由职业者ID',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'ACCEPTED' COMMENT '状态：ACCEPTED（已接单）/COMPLETED（已完成）/CANCELLED（已取消）',
+  `abandoned` tinyint(1) NULL DEFAULT 0 COMMENT '是否已放弃接单',
+  `abandoned_at` timestamp NULL DEFAULT NULL COMMENT '放弃接单时间',
+  `accepted_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '接单时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_project_freelancer`(`project_id` ASC, `freelancer_id` ASC) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  CONSTRAINT `project_order_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `project_order_ibfk_2` FOREIGN KEY (`freelancer_id`) REFERENCES `freelancer` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '项目接单表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of project_order
+-- ----------------------------
+INSERT INTO `project_order` VALUES (2, 8, 1, 'COMPLETED', 0, NULL, '2025-12-07 22:27:35', '2025-12-07 22:27:34', '2025-12-08 16:02:39');
+
+-- ----------------------------
+-- Table structure for project_payment
+-- ----------------------------
+DROP TABLE IF EXISTS `project_payment`;
+CREATE TABLE `project_payment`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `enterprise_id` int NOT NULL COMMENT '企业ID',
+  `freelancer_id` int NULL DEFAULT NULL COMMENT '自由职业者ID',
+  `deposit_amount` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '已支付保证金（企业发布时支付）',
+  `full_amount` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '项目全额（确认合作时支付）',
+  `freelancer_deposit` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '接单者保证金',
+  `paid_amount` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '已支付总金额',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DEPOSIT_PAID' COMMENT '支付状态：DEPOSIT_PAID（已付保证金）/FULL_PAID（已付全款）/REFUNDED（已退款）/COMPLETED（已完成付款）',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_enterprise_id`(`enterprise_id` ASC) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '项目支付记录表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of project_payment
+-- ----------------------------
+INSERT INTO `project_payment` VALUES (1, 1, 1, NULL, 3055.50, 5230.00, 0.00, 5230.00, 'FULL_PAID', '2025-12-07 22:00:52', '2025-12-07 22:00:52');
+INSERT INTO `project_payment` VALUES (2, 8, 1, 1, 1000.00, 2400.00, 120.00, 2400.00, 'COMPLETED', '2025-12-07 22:23:54', '2025-12-08 15:53:23');
+
+-- ----------------------------
 -- Table structure for resume
 -- ----------------------------
 DROP TABLE IF EXISTS `resume`;
@@ -213,6 +496,56 @@ CREATE TABLE `resume`  (
 -- Records of resume
 -- ----------------------------
 INSERT INTO `resume` VALUES (11, 'Java开发', '张三', '男', '3k以下', '本科', '1年以内', '18800009999', 'zhangsan@xm.com', '[{\"id\":\"1729648501885vfwuj8vz8m8\",\"school\":\"同济大学121\",\"speciality\":\"电子信息工程\",\"education\":\"本科\",\"start\":\"2024-10-16\",\"end\":\"2024-11-01\",\"course\":\"哈哈哈哈呵呵呵呵呵呵哈哈哈哈哈呵呵呵呵呵呵呵哈哈哈哈呵呵呵呵呵呵哈哈哈\"},{\"id\":\"1729648537662czu3ucws0oh\",\"school\":\"同济大学\",\"speciality\":\"计算机软件\",\"education\":\"硕士\",\"start\":\"2024-10-16\",\"end\":\"2024-11-07\",\"course\":\"哈哈哈哈呵呵呵呵呵呵哈哈哈哈哈呵呵呵呵呵呵呵哈哈哈哈呵呵呵呵呵呵哈哈哈\"}]', '[]', '[]', 1);
+
+-- ----------------------------
+-- Table structure for submission
+-- ----------------------------
+DROP TABLE IF EXISTS `submission`;
+CREATE TABLE `submission`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '稿件ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `freelancer_id` int NOT NULL COMMENT '自由职业者ID',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '稿件标题',
+  `description` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '完成思路/文字描述',
+  `quote_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '报价（可选）',
+  `quote_history` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '报价修改历史（JSON格式）',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'SUBMITTED' COMMENT '状态：SUBMITTED/INTERESTED/REJECTED/CONFIRMED',
+  `deposit_paid` tinyint(1) NULL DEFAULT 0 COMMENT '是否已支付接单保证金',
+  `enterprise_confirmed` tinyint(1) NULL DEFAULT 0 COMMENT '企业是否已确认合作',
+  `freelancer_confirmed` tinyint(1) NULL DEFAULT 0 COMMENT '接单者是否已确认合作',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '稿件表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of submission
+-- ----------------------------
+INSERT INTO `submission` VALUES (6, 8, 1, '开发系统', '初步开发效果', 2400.00, NULL, 'CONFIRMED', 1, 1, 1, '2025-12-07 22:32:21', '2025-12-07 22:38:44');
+
+-- ----------------------------
+-- Table structure for submission_attachment
+-- ----------------------------
+DROP TABLE IF EXISTS `submission_attachment`;
+CREATE TABLE `submission_attachment`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '附件ID',
+  `submission_id` int NOT NULL COMMENT '稿件ID',
+  `file_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件URL',
+  `file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原文件名',
+  `file_size` bigint NULL DEFAULT NULL COMMENT '文件大小(bytes)',
+  `file_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件类型(ext)',
+  `upload_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_submission_id`(`submission_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '稿件附件表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of submission_attachment
+-- ----------------------------
+INSERT INTO `submission_attachment` VALUES (3, 6, 'http://localhost:9090/api/attachments/download/3', '微信图片_20241021214959.jpg', 668656, '.jpg', '2025-12-07 22:32:21');
 
 -- ----------------------------
 -- Table structure for submit
@@ -247,7 +580,7 @@ CREATE TABLE `user`  (
   `phone` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '电话',
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '邮箱',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户信息表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of user
@@ -256,5 +589,33 @@ INSERT INTO `user` VALUES (1, 'zhangsan', '123456', '张三', 'http://localhost:
 INSERT INTO `user` VALUES (2, 'lisi', '123456', '李四', 'http://localhost:9090/files/download/1726038113795-柯基.jpeg', 'USER', '18877776666', 'lisi@xm.com');
 INSERT INTO `user` VALUES (3, 'wangwu', '123456', '王五', 'http://localhost:9090/files/download/1726038136850-拉布拉多.jpeg', 'USER', '18855556666', 'wangwu@xm.com');
 INSERT INTO `user` VALUES (4, 'zhaoliu', '123456', '赵六', 'http://localhost:9090/files/download/1726127830447-拉布拉多.jpeg', 'USER', '18899997777', 'zhaoliu@xm.com');
+INSERT INTO `user` VALUES (5, 'user1', '123456', '杨过', 'http://localhost:9090/files/download/1765106085382-OIP.webp', 'USER', '19919871254', '111@qq.com');
+
+-- ----------------------------
+-- Table structure for withdrawal_record
+-- ----------------------------
+DROP TABLE IF EXISTS `withdrawal_record`;
+CREATE TABLE `withdrawal_record`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `user_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户类型：ENTERPRISE/FREELANCER',
+  `amount` decimal(10, 2) NOT NULL COMMENT '提现金额',
+  `fee` decimal(10, 2) NOT NULL DEFAULT 0.00 COMMENT '手续费（3%）',
+  `actual_amount` decimal(10, 2) NOT NULL COMMENT '实际到账金额',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING（待处理）/SUCCESS（成功）/FAILED（失败）',
+  `bank_account` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '银行账户',
+  `bank_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '银行名称',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '提现记录表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of withdrawal_record
+-- ----------------------------
+INSERT INTO `withdrawal_record` VALUES (1, 5, 'FREELANCER', 2400.00, 72.00, 2328.00, 'SUCCESS', '111', '11', '提现', '2025-12-08 16:03:46', '2025-12-08 16:03:46');
 
 SET FOREIGN_KEY_CHECKS = 1;

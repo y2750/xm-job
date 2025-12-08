@@ -1,0 +1,83 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ProjectMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Project">
+        select project.*,
+        employ.name as enterpriseName, employ.avatar as enterpriseAvatar,
+        (select count(*) from project_order where project_order.project_id = project.id and project_order.status = 'ACCEPTED') as orderCount,
+        (select count(*) from submission where submission.project_id = project.id) as submissionCount
+        from project
+        left join enterprise on project.enterprise_id = enterprise.id
+        left join employ on enterprise.employ_id = employ.id
+        <where>
+            <if test="title != null and title != ''"> and project.title like concat('%', #{title}, '%')</if>
+            <if test="status != null and status != ''"> and project.status = #{status}</if>
+            <if test="enterpriseId != null"> and project.enterprise_id = #{enterpriseId}</if>
+            <if test="skillsRequired != null and skillsRequired != ''"> 
+                and project.skills_required like concat('%', #{skillsRequired}, '%')
+            </if>
+            <if test="enterpriseName != null and enterpriseName != ''"> 
+                and employ.name like concat('%', #{enterpriseName}, '%')
+            </if>
+        </where>
+        order by project.created_at desc
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Project" useGeneratedKeys="true" keyProperty="id">
+        insert into project
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="enterpriseId != null">enterprise_id,</if>
+            <if test="title != null">title,</if>
+            <if test="description != null">description,</if>
+            <if test="skillsRequired != null">skills_required,</if>
+            <if test="budgetMin != null">budget_min,</if>
+            <if test="budgetMax != null">budget_max,</if>
+            <if test="deadline != null">deadline,</if>
+            <if test="deliveryDeadline != null">delivery_deadline,</if>
+            <if test="deliveryRequirement != null">delivery_requirement,</if>
+            <if test="status != null">status,</if>
+            <if test="confirmedFreelancerId != null">confirmed_freelancer_id,</if>
+            <if test="paidAmount != null">paid_amount,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="enterpriseId != null">#{enterpriseId},</if>
+            <if test="title != null">#{title},</if>
+            <if test="description != null">#{description},</if>
+            <if test="skillsRequired != null">#{skillsRequired},</if>
+            <if test="budgetMin != null">#{budgetMin},</if>
+            <if test="budgetMax != null">#{budgetMax},</if>
+            <if test="deadline != null">#{deadline},</if>
+            <if test="deliveryDeadline != null">#{deliveryDeadline},</if>
+            <if test="deliveryRequirement != null">#{deliveryRequirement},</if>
+            <if test="status != null">#{status},</if>
+            <if test="confirmedFreelancerId != null">#{confirmedFreelancerId},</if>
+            <if test="paidAmount != null">#{paidAmount},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Project">
+        update project
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="skillsRequired != null">skills_required = #{skillsRequired},</if>
+            <if test="budgetMin != null">budget_min = #{budgetMin},</if>
+            <if test="budgetMax != null">budget_max = #{budgetMax},</if>
+            <if test="deadline != null">deadline = #{deadline},</if>
+            <if test="deliveryDeadline != null">delivery_deadline = #{deliveryDeadline},</if>
+            <if test="deliveryRequirement != null">delivery_requirement = #{deliveryRequirement},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="confirmedFreelancerId != null">confirmed_freelancer_id = #{confirmedFreelancerId},</if>
+            <if test="paidAmount != null">paid_amount = #{paidAmount},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from project where id = #{id}
+    </delete>
+
+</mapper>
+

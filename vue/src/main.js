@@ -2,18 +2,19 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import '@/assets/css/global.css'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import Antd from 'ant-design-vue'
+import 'ant-design-vue/dist/reset.css'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+
+// 配置 dayjs 中文
+dayjs.locale('zh-cn')
 
 const app = createApp(App)
 
 app.use(router)
-app.use(ElementPlus, { locale: zhCn })
+app.use(Antd, {
+  locale: zhCN
+})
 app.mount('#app')
-
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, component)
-}

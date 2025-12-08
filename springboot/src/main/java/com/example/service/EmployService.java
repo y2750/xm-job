@@ -29,6 +29,12 @@ public class EmployService {
     private EmployMapper employMapper;
     @Resource
     private PositionMapper positionMapper;
+    @Resource
+    private com.example.mapper.EnterpriseMapper enterpriseMapper;
+    @Resource
+    private com.example.service.MessageService messageService;
+    @Resource
+    private com.example.mapper.AdminMapper adminMapper;
 
     public void add(Employ employ) {
         Employ dbEmploy = employMapper.selectByUsername(employ.getUsername());
@@ -46,7 +52,53 @@ public class EmployService {
     }
 
     public void updateById(Employ employ) {
+        // 获取更新前的企业信息
+        Employ dbEmploy = employMapper.selectById(employ.getId());
+        if (dbEmploy == null) {
+            return;
+        }
+        
+        // 检查是否修改了企业基本信息
+        boolean infoChanged = false;
+        if (employ.getName() != null && !employ.getName().equals(dbEmploy.getName())) {
+            infoChanged = true;
+        } else if (employ.getAvatar() != null && !employ.getAvatar().equals(dbEmploy.getAvatar())) {
+            infoChanged = true;
+        } else if (employ.getCity() != null && !employ.getCity().equals(dbEmploy.getCity())) {
+            infoChanged = true;
+        } else if (employ.getAddress() != null && !employ.getAddress().equals(dbEmploy.getAddress())) {
+            infoChanged = true;
+        } else if (employ.getIndustryId() != null && !employ.getIndustryId().equals(dbEmploy.getIndustryId())) {
+            infoChanged = true;
+        } else if (employ.getScale() != null && !employ.getScale().equals(dbEmploy.getScale())) {
+            infoChanged = true;
+        } else if (employ.getStage() != null && !employ.getStage().equals(dbEmploy.getStage())) {
+            infoChanged = true;
+        }
+        
         employMapper.updateById(employ);
+        
+        // 如果企业已认证，且修改了基本信息，取消认证状态并通知管理员
+        if (infoChanged) {
+            com.example.entity.Enterprise enterprise = enterpriseMapper.selectByEmployId(employ.getId());
+            if (enterprise != null && enterprise.getVerified() != null && enterprise.getVerified()) {
+                // 取消认证状态
+                enterprise.setVerified(false);
+                enterprise.setVerifiedAt(null);
+                enterpriseMapper.updateById(enterprise);
+                
+                // 通知所有管理员
+                List<com.example.entity.Admin> admins = adminMapper.selectAll(new com.example.entity.Admin());
+                String enterpriseName = employ.getName() != null ? employ.getName() : "未知企业";
+                String notificationContent = String.format("企业《%s》修改了企业资料，认证状态已自动取消，请审核是否重新认证。", enterpriseName);
+                
+                for (com.example.entity.Admin admin : admins) {
+                    // 管理员通知使用ADMIN作为recipientType
+                    messageService.sendNotification(null, admin.getId(), "ADMIN", notificationContent);
+                }
+            }
+        }
+        
         if ("审核通过".equals(employ.getStatus())) {
             // 更新一下该企业岗位对应的新的行业
             List<Position> positions = positionMapper.selectByEmployId(employ.getId());

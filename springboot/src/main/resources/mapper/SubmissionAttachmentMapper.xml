@@ -1,0 +1,40 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubmissionAttachmentMapper">
+
+    <insert id="insert" parameterType="com.example.entity.SubmissionAttachment" useGeneratedKeys="true" keyProperty="id">
+        insert into submission_attachment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="submissionId != null">submission_id,</if>
+            <if test="fileUrl != null">file_url,</if>
+            <if test="fileName != null">file_name,</if>
+            <if test="fileSize != null">file_size,</if>
+            <if test="fileType != null">file_type,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="submissionId != null">#{submissionId},</if>
+            <if test="fileUrl != null">#{fileUrl},</if>
+            <if test="fileName != null">#{fileName},</if>
+            <if test="fileSize != null">#{fileSize},</if>
+            <if test="fileType != null">#{fileType},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.SubmissionAttachment">
+        update submission_attachment
+        <set>
+            <if test="fileUrl != null">file_url = #{fileUrl},</if>
+            <if test="fileName != null">file_name = #{fileName},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="fileType != null">file_type = #{fileType},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from submission_attachment where id = #{id}
+    </delete>
+
+</mapper>
+

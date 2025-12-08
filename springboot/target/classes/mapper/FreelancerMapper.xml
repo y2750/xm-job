@@ -1,0 +1,66 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.FreelancerMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Freelancer">
+        select freelancer.*,
+        user.name as userName, user.avatar as userAvatar, user.email as userEmail, user.phone as userPhone
+        from freelancer
+        left join user on freelancer.user_id = user.id
+        <where>
+            <if test="userId != null"> and freelancer.user_id = #{userId}</if>
+            <if test="verified != null"> and freelancer.verified = #{verified}</if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Freelancer" useGeneratedKeys="true" keyProperty="id">
+        insert into freelancer
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="skills != null">skills,</if>
+            <if test="portfolioUrl != null">portfolio_url,</if>
+            <if test="portfolioCount != null">portfolio_count,</if>
+            <if test="verified != null">verified,</if>
+            <if test="verifiedAt != null">verified_at,</if>
+            <if test="verificationInfo != null">verification_info,</if>
+            <if test="rating != null">rating,</if>
+            <if test="completedProjects != null">completed_projects,</if>
+            <if test="creditScore != null">credit_score,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="skills != null">#{skills},</if>
+            <if test="portfolioUrl != null">#{portfolioUrl},</if>
+            <if test="portfolioCount != null">#{portfolioCount},</if>
+            <if test="verified != null">#{verified},</if>
+            <if test="verifiedAt != null">#{verifiedAt},</if>
+            <if test="verificationInfo != null">#{verificationInfo},</if>
+            <if test="rating != null">#{rating},</if>
+            <if test="completedProjects != null">#{completedProjects},</if>
+            <if test="creditScore != null">#{creditScore},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Freelancer">
+        update freelancer
+        <set>
+            <if test="skills != null">skills = #{skills},</if>
+            <if test="portfolioUrl != null">portfolio_url = #{portfolioUrl},</if>
+            <if test="portfolioCount != null">portfolio_count = #{portfolioCount},</if>
+            <if test="verified != null">verified = #{verified},</if>
+            <if test="verifiedAt != null">verified_at = #{verifiedAt},</if>
+            <if test="verificationInfo != null">verification_info = #{verificationInfo},</if>
+            <if test="rating != null">rating = #{rating},</if>
+            <if test="completedProjects != null">completed_projects = #{completedProjects},</if>
+            <if test="creditScore != null">credit_score = #{creditScore},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from freelancer where id = #{id}
+    </delete>
+
+</mapper>
+

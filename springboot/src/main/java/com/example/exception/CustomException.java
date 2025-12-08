@@ -17,6 +17,11 @@ public class CustomException extends RuntimeException {
         this.msg = resultCodeEnum.msg;
     }
 
+    public CustomException(ResultCodeEnum resultCodeEnum, String customMsg) {
+        this.code = resultCodeEnum.code;
+        this.msg = customMsg;
+    }
+
     public String getCode() {
         return code;
     }

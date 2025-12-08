@@ -1,94 +1,95 @@
 <template>
-  <div style="width: 50%" class="card">
-    <el-form ref="user" :model="data.user" label-width="70px" style="padding: 20px">
-      <el-form-item prop="avatar" label="头像">
-        <el-upload
-            :action="baseUrl + '/files/upload'"
-            :on-success="handleFileUpload"
-            :show-file-list="false"
-            class="avatar-uploader"
-        >
-          <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" />
-          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-        </el-upload>
-      </el-form-item>
-      <el-form-item prop="username" label="用户名">
-        <el-input disabled v-model="data.user.username" placeholder="请输入用户名"></el-input>
-      </el-form-item>
-      <el-form-item prop="name" label="姓名">
-        <el-input v-model="data.user.name" placeholder="请输入姓名"></el-input>
-      </el-form-item>
-      <el-form-item prop="phone" label="电话">
-        <el-input v-model="data.user.phone" placeholder="请输入电话"></el-input>
-      </el-form-item>
-      <el-form-item prop="email" label="邮箱">
-        <el-input v-model="data.user.email" placeholder="请输入邮箱"></el-input>
-      </el-form-item>
-      <div style="text-align: center">
-        <el-button type="primary" @click="update">保 存</el-button>
-      </div>
-    </el-form>
-  </div>
+  <a-card>
+    <template #title>
+      <h3>个人资料</h3>
+    </template>
+    
+    <a-form :model="form" :rules="rules" ref="formRef" :label-col="{ span: 4 }" :wrapper-col="{ span: 16 }">
+      <a-form-item label="账号" name="username">
+        <a-input v-model:value="form.username" disabled />
+      </a-form-item>
+      <a-form-item label="姓名" name="name">
+        <a-input v-model:value="form.name" placeholder="请输入姓名" />
+      </a-form-item>
+      <a-form-item label="电话" name="phone">
+        <a-input v-model:value="form.phone" placeholder="请输入电话" />
+      </a-form-item>
+      <a-form-item label="邮箱" name="email">
+        <a-input v-model:value="form.email" placeholder="请输入邮箱" />
+      </a-form-item>
+      <a-form-item label="头像" name="avatar">
+        <a-input v-model:value="form.avatar" placeholder="请输入头像URL" />
+      </a-form-item>
+      <a-form-item :wrapper-col="{ offset: 4, span: 16 }">
+        <a-button type="primary" @click="handleSubmit" :loading="submitting">保存</a-button>
+        <a-button style="margin-left: 8px" @click="handleReset">重置</a-button>
+      </a-form-item>
+    </a-form>
+  </a-card>
 </template>
 
 <script setup>
-import { reactive } from "vue";
-import request from "@/utils/request.js";
-import {ElMessage} from "element-plus";
+import { ref, reactive, onMounted } from 'vue'
+import { message } from 'ant-design-vue'
+import request from '@/utils/request'
 
-const baseUrl = import.meta.env.VITE_BASE_URL
+const formRef = ref()
+const submitting = ref(false)
 
-const data = reactive({
-  user: JSON.parse(localStorage.getItem('xm-user') || '{}')
+const form = reactive({
+  id: null,
+  username: '',
+  name: '',
+  phone: '',
+  email: '',
+  avatar: ''
 })
 
-const handleFileUpload = (res) => {
-  data.user.avatar = res.data
+const rules = {
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
 }
 
-const emit = defineEmits(['updateUser'])
-const update = () => {
-  if (data.user.role === 'ADMIN') {
-    request.put('/admin/update', data.user).then(res => {
-      if (res.code === '200') {
-        ElMessage.success('保存成功')
-        localStorage.setItem('xm-user', JSON.stringify(data.user))
-        emit('updateUser')
-      } else {
-        ElMessage.error(res.msg)
-      }
+const loadUser = () => {
+  const user = JSON.parse(localStorage.getItem('xm-user') || '{}')
+  if (user.id) {
+    Object.assign(form, {
+      id: user.id,
+      username: user.username || '',
+      name: user.name || '',
+      phone: user.phone || '',
+      email: user.email || '',
+      avatar: user.avatar || ''
     })
   }
 }
+
+const handleSubmit = async () => {
+  try {
+    await formRef.value.validate()
+    submitting.value = true
+    const res = await request.put('/admin/update', form)
+    if (res.code === '200') {
+      message.success('保存成功')
+      // 更新本地存储的用户信息
+      const user = JSON.parse(localStorage.getItem('xm-user') || '{}')
+      Object.assign(user, form)
+      localStorage.setItem('xm-user', JSON.stringify(user))
+    } else {
+      message.error(res.msg || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存失败:', error)
+  } finally {
+    submitting.value = false
+  }
+}
+
+const handleReset = () => {
+  loadUser()
+  formRef.value?.resetFields()
+}
+
+onMounted(() => {
+  loadUser()
+})
 </script>
-
-<style>
-.avatar-uploader {
-  height: 120px;
-}
-.avatar-uploader .avatar {
-  width: 120px;
-  height: 120px;
-  display: block;
-}
-.avatar-uploader .el-upload {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--el-transition-duration-fast);
-}
-
-.avatar-uploader .el-upload:hover {
-  border-color: var(--el-color-primary);
-}
-
-.el-icon.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 120px;
-  height: 120px;
-  text-align: center;
-}
-</style>

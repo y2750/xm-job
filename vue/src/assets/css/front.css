@@ -57,20 +57,86 @@
     width: 80%;
     margin: 5px auto;
 }
-/* ElementUI 样式覆盖 */
-.el-menu.el-menu--horizontal {
-    border: none !important;
-    height: 50px;
-}
-
-.el-menu {
+/* Ant Design Vue 菜单样式 - 强制覆盖 */
+.front-header .ant-menu {
     background-color: #202329 !important;
+    border: none !important;
+    height: 50px !important;
+    line-height: 50px !important;
 }
 
-.el-menu-item {
-    color: white !important;
+.front-header .ant-menu-item {
+    color: #ffffff !important;
+    height: 50px !important;
+    line-height: 50px !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    margin: 0 8px !important;
+    border-radius: 4px !important;
+    transition: all 0.3s !important;
+    opacity: 1 !important;
 }
-.el-menu-item:hover, .el-menu-item.is-active {
-    color: #00bebd !important;
-    background-color: #424754 !important;
+
+.front-header .ant-menu-item a {
+    color: #ffffff !important;
+}
+
+.front-header .ant-menu-item:hover {
+    color: #1890ff !important;
+    background-color: rgba(24, 144, 255, 0.2) !important;
+}
+
+.front-header .ant-menu-item:hover a {
+    color: #1890ff !important;
+}
+
+.front-header .ant-menu-item-selected {
+    color: #1890ff !important;
+    background-color: rgba(24, 144, 255, 0.25) !important;
+    font-weight: 600 !important;
+}
+
+.front-header .ant-menu-item-selected a {
+    color: #1890ff !important;
+}
+
+.front-header .ant-menu-item-selected::after {
+    border-bottom: 3px solid #1890ff !important;
+    bottom: 0 !important;
+}
+
+.front-header .ant-menu-horizontal {
+    border: none !important;
+}
+
+/* 更具体的选择器确保样式生效 */
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    font-weight: 500 !important;
+}
+
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item a {
+    color: #ffffff !important;
+}
+
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item:hover {
+    color: #1890ff !important;
+    background-color: rgba(24, 144, 255, 0.2) !important;
+    opacity: 1 !important;
+}
+
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item:hover a {
+    color: #1890ff !important;
+}
+
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item-selected {
+    color: #1890ff !important;
+    background-color: rgba(24, 144, 255, 0.25) !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+}
+
+.front-header-center .ant-menu.ant-menu-horizontal .ant-menu-item-selected a {
+    color: #1890ff !important;
 }

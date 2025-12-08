@@ -1,5 +1,5 @@
 import axios from "axios";
-import {ElMessage} from "element-plus";
+import { message } from "ant-design-vue";
 import router from "@/router/index.js";
 
 const request = axios.create({
@@ -10,7 +10,10 @@ const request = axios.create({
 // request 拦截器
 // 可以自请求发送前对请求做一些处理
 request.interceptors.request.use(config => {
-    config.headers['Content-Type'] = 'application/json;charset=utf-8';
+    // 如果是 FormData，不要设置 Content-Type，让浏览器自动设置（包括 boundary）
+    if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json;charset=utf-8';
+    }
     let user = JSON.parse(localStorage.getItem("xm-user") || '{}')
     config.headers['token'] = user.token || ''
     return config
@@ -22,14 +25,15 @@ request.interceptors.request.use(config => {
 // 可以在接口响应后统一处理结果
 request.interceptors.response.use(
     response => {
-        let res = response.data;
-        // 如果是返回的文件
+        // 如果是返回的文件（blob），直接返回 Blob 对象
         if (response.config.responseType === 'blob') {
-            return res
+            return response.data
         }
+        
+        let res = response.data;
         // 当权限验证不通过的时候给出提示
         if (res.code === '401') {
-            ElMessage.error(res.msg)
+            message.error(res.msg)
             router.push('/login')
         }
         // 兼容服务端返回的字符串数据
@@ -39,10 +43,10 @@ request.interceptors.response.use(
         return res;
     },
     error => {
-        if (error.response.status === 404) {
-            ElMessage.error('未找到请求接口')
-        } else if (error.response.status === 500) {
-            ElMessage.error('系统异常，请查看后端控制台报错')
+        if (error.response && error.response.status === 404) {
+            message.error('未找到请求接口')
+        } else if (error.response && error.response.status === 500) {
+            message.error('系统异常，请查看后端控制台报错')
         } else {
             console.error(error.message)
         }

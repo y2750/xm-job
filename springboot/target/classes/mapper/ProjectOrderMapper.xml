@@ -1,0 +1,54 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ProjectOrderMapper">
+
+    <select id="selectAll" resultType="com.example.entity.ProjectOrder">
+        select project_order.*,
+        project.title as projectTitle,
+        project.status as projectStatus,
+        user.name as freelancerName, user.avatar as freelancerAvatar
+        from project_order
+        left join project on project_order.project_id = project.id
+        left join freelancer on project_order.freelancer_id = freelancer.id
+        left join user on freelancer.user_id = user.id
+        <where>
+            <if test="projectId != null"> and project_order.project_id = #{projectId}</if>
+            <if test="freelancerId != null"> and project_order.freelancer_id = #{freelancerId}</if>
+            <if test="status != null and status != ''"> and project_order.status = #{status}</if>
+        </where>
+        order by project_order.accepted_at desc
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.ProjectOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into project_order
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">project_id,</if>
+            <if test="freelancerId != null">freelancer_id,</if>
+            <if test="status != null">status,</if>
+            <if test="acceptedAt != null">accepted_at,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">#{projectId},</if>
+            <if test="freelancerId != null">#{freelancerId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="acceptedAt != null">#{acceptedAt},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.ProjectOrder">
+        update project_order
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="abandoned != null">abandoned = #{abandoned},</if>
+            <if test="abandonedAt != null">abandoned_at = #{abandonedAt},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from project_order where id = #{id}
+    </delete>
+
+</mapper>
+

@@ -1,0 +1,72 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubmissionMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Submission">
+        select submission.*,
+        project.title as projectTitle,
+        project.status as projectStatus,
+        user.name as freelancerName, user.avatar as freelancerAvatar
+        from submission
+        left join project on submission.project_id = project.id
+        left join freelancer on submission.freelancer_id = freelancer.id
+        left join user on freelancer.user_id = user.id
+        <where>
+            <if test="projectId != null"> and submission.project_id = #{projectId}</if>
+            <if test="freelancerId != null"> and submission.freelancer_id = #{freelancerId}</if>
+            <if test="status != null and status != ''"> and submission.status = #{status}</if>
+            <if test="freelancerName != null and freelancerName != ''"> and user.name like concat('%', #{freelancerName}, '%')</if>
+        </where>
+        order by submission.created_at desc
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Submission" useGeneratedKeys="true" keyProperty="id">
+        insert into submission
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">project_id,</if>
+            <if test="freelancerId != null">freelancer_id,</if>
+            <if test="title != null">title,</if>
+            <if test="description != null">description,</if>
+            <if test="quotePrice != null">quote_price,</if>
+            <if test="quoteHistory != null">quote_history,</if>
+            <if test="status != null">status,</if>
+            <if test="depositPaid != null">deposit_paid,</if>
+            <if test="enterpriseConfirmed != null">enterprise_confirmed,</if>
+            <if test="freelancerConfirmed != null">freelancer_confirmed,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="projectId != null">#{projectId},</if>
+            <if test="freelancerId != null">#{freelancerId},</if>
+            <if test="title != null">#{title},</if>
+            <if test="description != null">#{description},</if>
+            <if test="quotePrice != null">#{quotePrice},</if>
+            <if test="quoteHistory != null">#{quoteHistory},</if>
+            <if test="status != null">#{status},</if>
+            <if test="depositPaid != null">#{depositPaid},</if>
+            <if test="enterpriseConfirmed != null">#{enterpriseConfirmed},</if>
+            <if test="freelancerConfirmed != null">#{freelancerConfirmed},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Submission">
+        update submission
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="quotePrice != null">quote_price = #{quotePrice},</if>
+            <if test="quoteHistory != null">quote_history = #{quoteHistory},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="depositPaid != null">deposit_paid = #{depositPaid},</if>
+            <if test="enterpriseConfirmed != null">enterprise_confirmed = #{enterpriseConfirmed},</if>
+            <if test="freelancerConfirmed != null">freelancer_confirmed = #{freelancerConfirmed},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from submission where id = #{id}
+    </delete>
+
+</mapper>
+

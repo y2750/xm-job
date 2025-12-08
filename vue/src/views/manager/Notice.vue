@@ -1,159 +1,184 @@
 <template>
-  <div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-input v-model="data.title" prefix-icon="Search" style="width: 240px; margin-right: 10px" placeholder="请输入公告标题查询"></el-input>
-      <el-button type="info" plain @click="load">查询</el-button>
-      <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
-    </div>
-    <div class="card" style="margin-bottom: 5px">
-      <el-button type="primary" plain @click="handleAdd">新增</el-button>
-      <el-button type="danger" plain @click="delBatch">批量删除</el-button>
-    </div>
+  <a-card>
+    <template #title>
+      <h3>系统公告管理</h3>
+    </template>
+    
+    <a-button type="primary" style="margin-bottom: 20px" @click="handleAdd">新增公告</a-button>
 
-    <div class="card" style="margin-bottom: 5px">
-      <el-table stripe :data="data.tableData" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="title" label="公告标题" />
-        <el-table-column prop="content" label="公告内容" />
-        <el-table-column prop="time" label="发布时间" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template v-slot="scope">
-            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)"></el-button>
-            <el-button type="danger" circle :icon="Delete" @click="del(scope.row.id)"></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-    <div class="card" v-if="data.total">
-      <el-pagination @current-change="load" background layout="prev, pager, next" :page-size="data.pageSize" v-model:current-page="data.pageNum" :total="data.total" />
-    </div>
-
-    <el-dialog title="公告信息" v-model="data.formVisible" width="40%" destroy-on-close>
-      <el-form ref="form" :model="data.form" label-width="70px" style="padding: 20px">
-        <el-form-item prop="title" label="公告标题">
-          <el-input v-model="data.form.title" placeholder="请输入公告标题"></el-input>
-        </el-form-item>
-        <el-form-item prop="content" label="公告内容">
-          <el-input type="textarea" :rows="4" v-model="data.form.content" placeholder="请输入公告内容"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="data.formVisible = false">取 消</el-button>
-          <el-button type="primary" @click="save">确 定</el-button>
-        </span>
+    <!-- 公告列表 -->
+    <a-table
+      :columns="columns"
+      :data-source="noticeList"
+      :pagination="pagination"
+      :loading="loading"
+      row-key="id"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'action'">
+          <a-button type="link" @click="handleEdit(record)">编辑</a-button>
+          <a-button type="link" danger @click="handleDelete(record.id)">删除</a-button>
+        </template>
       </template>
-    </el-dialog>
-  </div>
+    </a-table>
+
+    <!-- 新增/编辑弹窗 -->
+    <a-modal
+      v-model:open="modalVisible"
+      :title="modalTitle"
+      @ok="handleSubmit"
+      @cancel="handleCancel"
+    >
+      <a-form :model="form" :rules="rules" ref="formRef" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="公告标题" name="title">
+          <a-input v-model:value="form.title" placeholder="请输入公告标题" />
+        </a-form-item>
+        <a-form-item label="公告内容" name="content">
+          <a-textarea v-model:value="form.content" :rows="6" placeholder="请输入公告内容" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+  </a-card>
 </template>
 
 <script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { message, Modal } from 'ant-design-vue'
+import request from '@/utils/request'
 
-import {reactive} from "vue";
-import request from "@/utils/request.js";
-import {ElMessage, ElMessageBox} from "element-plus";
-import {Delete, Edit} from "@element-plus/icons-vue";
+const loading = ref(false)
+const noticeList = ref([])
+const modalVisible = ref(false)
+const modalTitle = ref('新增公告')
+const formRef = ref()
+const editingId = ref(null)
 
-
-const data = reactive({
-  formVisible: false,
-  form: {},
-  tableData: [],
-  pageNum: 1,
-  pageSize: 10,
-  total: 0,
-  title: null,
-  ids: []
+const form = reactive({
+  title: '',
+  content: ''
 })
 
-const load = () => {
-  request.get('/notice/selectPage', {
-    params: {
-      pageNum: data.pageNum,
-      pageSize: data.pageSize,
-      title: data.title
-    }
-  }).then(res => {
-    if (res.code === '200') {
-      data.tableData = res.data?.list || []
-      data.total = res.data?.total
-    }
-  })
-}
-const handleAdd = () => {
-  data.form = {}
-  data.formVisible = true
-}
-const handleEdit = (row) => {
-  data.form = JSON.parse(JSON.stringify(row))
-  data.formVisible = true
-}
-const add = () => {
-  request.post('/notice/add', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
+const rules = {
+  title: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }]
 }
 
-const update = () => {
-  request.put('/notice/update', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    }
-  })
-}
-
-const save = () => {
-  data.form.id ? update() : add()
-}
-
-const del = (id) => {
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete('/notice/delete/' + id).then(res => {
-      if (res.code === '200') {
-        ElMessage.success("删除成功")
-        load()
-      } else {
-        ElMessage.error(res.msg)
-      }
-    })
-  }).catch(err => {
-    console.error(err)
-  })
-}
-const delBatch = () => {
-  if (!data.ids.length) {
-    ElMessage.warning("请选择数据")
-    return
+const pagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showTotal: (total) => `共 ${total} 条`,
+  onChange: (page, pageSize) => {
+    pagination.current = page
+    pagination.pageSize = pageSize
+    loadNotices()
   }
-  ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete("/notice/delete/batch", {data: data.ids}).then(res => {
+})
+
+const columns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: '公告标题', dataIndex: 'title', key: 'title' },
+  { title: '公告内容', dataIndex: 'content', key: 'content', ellipsis: true },
+  { title: '发布时间', dataIndex: 'time', key: 'time' },
+  { title: '操作', key: 'action', width: 150, fixed: 'right' }
+]
+
+const loadNotices = async () => {
+  loading.value = true
+  try {
+    const res = await request.get('/notice/selectAll')
+    if (res.code === '200') {
+      noticeList.value = res.data || []
+      pagination.total = noticeList.value.length
+    } else {
+      message.error(res.msg || '加载公告列表失败')
+    }
+  } catch (error) {
+    console.error('加载公告列表失败:', error)
+    message.error('加载公告列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleAdd = () => {
+  editingId.value = null
+  modalTitle.value = '新增公告'
+  Object.assign(form, {
+    title: '',
+    content: ''
+  })
+  modalVisible.value = true
+}
+
+const handleEdit = (record) => {
+  editingId.value = record.id
+  modalTitle.value = '编辑公告'
+  Object.assign(form, {
+    title: record.title,
+    content: record.content
+  })
+  modalVisible.value = true
+}
+
+const handleSubmit = async () => {
+  try {
+    await formRef.value.validate()
+    if (editingId.value) {
+      // 编辑
+      const res = await request.put('/notice/update', {
+        id: editingId.value,
+        ...form
+      })
       if (res.code === '200') {
-        ElMessage.success('操作成功')
-        load()
+        message.success('更新成功')
+        modalVisible.value = false
+        loadNotices()
       } else {
-        ElMessage.error(res.msg)
+        message.error(res.msg || '更新失败')
       }
-    })
-  }).catch(err => {
-    console.error(err)
+    } else {
+      // 新增
+      const res = await request.post('/notice/add', form)
+      if (res.code === '200') {
+        message.success('新增成功')
+        modalVisible.value = false
+        loadNotices()
+      } else {
+        message.error(res.msg || '新增失败')
+      }
+    }
+  } catch (error) {
+    console.error('提交失败:', error)
+  }
+}
+
+const handleCancel = () => {
+  formRef.value?.resetFields()
+  modalVisible.value = false
+}
+
+const handleDelete = (id) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除此公告吗？',
+    onOk: async () => {
+      try {
+        const res = await request.delete(`/notice/delete/${id}`)
+        if (res.code === '200') {
+          message.success('删除成功')
+          loadNotices()
+        } else {
+          message.error(res.msg || '删除失败')
+        }
+      } catch (error) {
+        message.error('删除失败')
+      }
+    }
   })
 }
-const handleSelectionChange = (rows) => {
-  data.ids = rows.map(v => v.id)
-}
 
-const reset = () => {
-  data.title = null
-  load()
-}
-
-load()
+onMounted(() => {
+  loadNotices()
+})
 </script>
