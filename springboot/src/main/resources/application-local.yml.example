@@ -1,0 +1,8 @@
+cos:
+  client:
+    host: https://your-bucket.cos.ap-shanghai.myqcloud.com
+    secretId: YOUR_SECRET_ID_HERE
+    secretKey: YOUR_SECRET_KEY_HERE
+    region: ap-shanghai
+    bucket: your-bucket-name
+
