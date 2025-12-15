@@ -53,5 +53,14 @@ public class ProjectOrderController {
         orderService.abandonOrder(orderId);
         return Result.success();
     }
+
+    /**
+     * 查询项目的接单人列表（包含freelancer信息）
+     */
+    @GetMapping("/project/{projectId}")
+    public Result selectByProjectId(@PathVariable Integer projectId) {
+        List<ProjectOrder> list = orderService.selectByProjectIdWithFreelancer(projectId);
+        return Result.success(list);
+    }
 }
 

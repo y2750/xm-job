@@ -1,0 +1,78 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.NotificationMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Notification">
+        SELECT * FROM notification
+        <where>
+            <if test="type != null and type != ''">AND type = #{type}</if>
+            <if test="scope != null and scope != ''">AND scope = #{scope}</if>
+            <if test="recipientId != null">AND recipient_id = #{recipientId}</if>
+            <if test="recipientType != null and recipientType != ''">AND recipient_type = #{recipientType}</if>
+            <if test="projectId != null">AND project_id = #{projectId}</if>
+            <if test="submissionId != null">AND submission_id = #{submissionId}</if>
+            <if test="deliverableId != null">AND deliverable_id = #{deliverableId}</if>
+            <if test="isRead != null">AND is_read = #{isRead}</if>
+            <if test="title != null and title != ''">AND title LIKE CONCAT('%', #{title}, '%')</if>
+            <if test="content != null and content != ''">AND content LIKE CONCAT('%', #{content}, '%')</if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.Notification" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notification
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="type != null">type,</if>
+            <if test="scope != null">scope,</if>
+            <if test="recipientId != null">recipient_id,</if>
+            <if test="recipientType != null">recipient_type,</if>
+            <if test="projectId != null">project_id,</if>
+            <if test="submissionId != null">submission_id,</if>
+            <if test="deliverableId != null">deliverable_id,</if>
+            <if test="title != null">title,</if>
+            <if test="content != null">content,</if>
+            <if test="isRead != null">is_read,</if>
+            <if test="readAt != null">read_at,</if>
+            created_at,
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="type != null">#{type},</if>
+            <if test="scope != null">#{scope},</if>
+            <if test="recipientId != null">#{recipientId},</if>
+            <if test="recipientType != null">#{recipientType},</if>
+            <if test="projectId != null">#{projectId},</if>
+            <if test="submissionId != null">#{submissionId},</if>
+            <if test="deliverableId != null">#{deliverableId},</if>
+            <if test="title != null">#{title},</if>
+            <if test="content != null">#{content},</if>
+            <if test="isRead != null">#{isRead},</if>
+            <if test="readAt != null">#{readAt},</if>
+            NOW(),
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Notification">
+        UPDATE notification
+        <set>
+            <if test="type != null">type = #{type},</if>
+            <if test="scope != null">scope = #{scope},</if>
+            <if test="recipientId != null">recipient_id = #{recipientId},</if>
+            <if test="recipientType != null">recipient_type = #{recipientType},</if>
+            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="submissionId != null">submission_id = #{submissionId},</if>
+            <if test="deliverableId != null">deliverable_id = #{deliverableId},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="isRead != null">is_read = #{isRead},</if>
+            <if test="readAt != null">read_at = #{readAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM notification WHERE id = #{id}
+    </delete>
+
+</mapper>
+

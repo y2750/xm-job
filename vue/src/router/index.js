@@ -41,6 +41,7 @@ const router = createRouter({
         { path: 'projects/:projectId/submissions', component: () => import('@/views/projects/ProjectSubmissions.vue') },
         { path: 'projects/:projectId/deliverables', component: () => import('@/views/projects/ProjectDeliverables.vue') },
         { path: 'projects/publish', component: () => import('@/views/projects/ProjectPublish.vue') },
+        { path: 'projects/edit/:id', component: () => import('@/views/projects/ProjectEdit.vue') },
         // 接单相关路由（使用 Front 布局）
         { path: 'orders', component: () => import('@/views/orders/MyOrders.vue') },
         // 稿件相关路由（使用 Front 布局）
@@ -58,6 +59,9 @@ const router = createRouter({
         { path: 'messages', component: () => import('@/views/messages/MessageList.vue') },
         { path: 'messages/:projectId', component: () => import('@/views/messages/MessageDetail.vue') },
         { path: 'chat/:submissionId', component: () => import('@/views/messages/Chat.vue') },
+        { path: 'conversation', component: () => import('@/views/messages/Conversation.vue') },
+        { path: 'conversation/:submissionId', component: () => import('@/views/messages/Conversation.vue') },
+        { path: 'conversation/project/:projectId', component: () => import('@/views/messages/Conversation.vue') },
         // 支付相关路由（使用 Front 布局）
         { path: 'balance', component: () => import('@/views/payment/Balance.vue') },
         { path: 'withdraw', component: () => import('@/views/payment/Withdraw.vue') },

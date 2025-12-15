@@ -3,16 +3,23 @@ server:
 
 # 数据库配置
 spring:
+  profiles:
+    active: local # 激活local profile，加载application-local.yml中的配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: a600523
     url: jdbc:mysql://localhost:3306/xm_job?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
+  # 文件上传大小限制
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
 
 # 配置mybatis实体和xml映射
 mybatis:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 移除 log-impl 配置，减少SQL日志输出（如需调试可设置为 org.apache.ibatis.logging.slf4j.Slf4jImpl）
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 
@@ -27,8 +34,8 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   group-configs:
-    - group: 'default'
-      paths-to-match: '/**'
+    - group: "default"
+      paths-to-match: "/**"
       packages-to-scan: com.example.controller
 # knife4j的增强配置，不需要增强可以不配
 knife4j:

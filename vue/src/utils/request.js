@@ -25,9 +25,9 @@ request.interceptors.request.use(config => {
 // 可以在接口响应后统一处理结果
 request.interceptors.response.use(
     response => {
-        // 如果是返回的文件（blob），直接返回 Blob 对象
+        // 如果是返回的文件（blob），直接返回 Blob 对象，让调用方自己处理
         if (response.config.responseType === 'blob') {
-            return response.data
+            return response.data;
         }
         
         let res = response.data;

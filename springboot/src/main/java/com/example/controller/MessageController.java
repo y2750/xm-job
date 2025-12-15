@@ -105,5 +105,14 @@ public class MessageController {
         messageService.deleteById(id);
         return Result.success();
     }
+
+    /**
+     * 获取聊天列表（按submission分组）
+     */
+    @GetMapping("/chats")
+    public Result getChatList() {
+        List<Message> list = messageService.getChatList();
+        return Result.success(list);
+    }
 }
 

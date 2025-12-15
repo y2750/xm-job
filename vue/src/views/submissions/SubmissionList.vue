@@ -1,67 +1,80 @@
 <template>
-  <div class="submission-list-container">
-    <a-card>
+  <div class="submission-container">
+    <a-card class="submission-card">
       <template #title>
-        <h2>我的提交</h2>
+        <div class="card-header">
+          <h2 class="card-title">
+            <FileTextOutlined />
+            我的提交
+          </h2>
+        </div>
       </template>
 
       <!-- 筛选条件 -->
-      <a-form :model="filterForm" layout="inline" style="margin-bottom: 20px">
-        <a-form-item label="类型">
-          <a-select
-            v-model:value="filterForm.type"
-            placeholder="全部类型"
-            allow-clear
-            style="width: 120px"
-            @change="handleFilter"
-          >
-            <a-select-option value="SUBMISSION">稿件</a-select-option>
-            <a-select-option value="DELIVERABLE">成品</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="项目状态">
-          <a-select
-            v-model:value="filterForm.projectStatus"
-            placeholder="全部状态"
-            allow-clear
-            style="width: 150px"
-            @change="handleFilter"
-          >
-            <a-select-option value="PUBLISHED">已发布</a-select-option>
-            <a-select-option value="CLOSED">已截止</a-select-option>
-            <a-select-option value="CONFIRMED">已确定合作</a-select-option>
-            <a-select-option value="COMPLETED">已完成</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="提交状态">
-          <a-select
-            v-model:value="filterForm.status"
-            placeholder="全部状态"
-            allow-clear
-            style="width: 150px"
-            @change="handleFilter"
-          >
-            <!-- 稿件状态 -->
-            <template v-if="!filterForm.type || filterForm.type === 'SUBMISSION'">
-              <a-select-option value="SUBMITTED">已提交</a-select-option>
-              <a-select-option value="INTERESTED">有意向</a-select-option>
-              <a-select-option value="REJECTED">已拒绝</a-select-option>
+      <div class="filter-section">
+        <a-form :model="filterForm" layout="inline" class="filter-form">
+          <a-form-item label="类型">
+            <a-select
+              v-model:value="filterForm.type"
+              placeholder="全部类型"
+              allow-clear
+              style="width: 120px"
+              @change="handleFilter"
+            >
+              <a-select-option value="SUBMISSION">稿件</a-select-option>
+              <a-select-option value="DELIVERABLE">成品</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="项目状态">
+            <a-select
+              v-model:value="filterForm.projectStatus"
+              placeholder="全部状态"
+              allow-clear
+              style="width: 140px"
+              @change="handleFilter"
+            >
+              <a-select-option value="PUBLISHED">已发布</a-select-option>
+              <a-select-option value="CLOSED">已截止</a-select-option>
               <a-select-option value="CONFIRMED">已确定合作</a-select-option>
-            </template>
-            <!-- 成品状态 -->
-            <template v-if="!filterForm.type || filterForm.type === 'DELIVERABLE'">
-              <a-select-option value="SUBMITTED">已提交</a-select-option>
-              <a-select-option value="APPROVED">验收通过</a-select-option>
-              <a-select-option value="REJECTED">验收不通过</a-select-option>
-              <a-select-option value="EXPIRED">已过期</a-select-option>
-            </template>
-          </a-select>
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="handleFilter">筛选</a-button>
-          <a-button style="margin-left: 8px" @click="handleReset">重置</a-button>
-        </a-form-item>
-      </a-form>
+              <a-select-option value="COMPLETED">已完成</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="提交状态">
+            <a-select
+              v-model:value="filterForm.status"
+              placeholder="全部状态"
+              allow-clear
+              style="width: 140px"
+              @change="handleFilter"
+            >
+              <template v-if="!filterForm.type || filterForm.type === 'SUBMISSION'">
+                <a-select-option value="SUBMITTED">已提交</a-select-option>
+                <a-select-option value="INTERESTED">有意向</a-select-option>
+                <a-select-option value="REJECTED">已拒绝</a-select-option>
+                <a-select-option value="CONFIRMED">已确定合作</a-select-option>
+              </template>
+              <template v-if="!filterForm.type || filterForm.type === 'DELIVERABLE'">
+                <a-select-option value="SUBMITTED">已提交</a-select-option>
+                <a-select-option value="APPROVED">验收通过</a-select-option>
+                <a-select-option value="REJECTED">验收不通过</a-select-option>
+                <a-select-option value="EXPIRED">已过期</a-select-option>
+              </template>
+            </a-select>
+          </a-form-item>
+          <a-form-item>
+            <a-space>
+              <a-button type="primary" @click="handleFilter">
+                <SearchOutlined />
+                筛选
+              </a-button>
+              <a-button @click="handleReset">
+                <ReloadOutlined />
+                重置
+              </a-button>
+            </a-space>
+          </a-form-item>
+        </a-form>
+      </div>
 
       <a-table
         :columns="columns"
@@ -70,18 +83,27 @@
         :pagination="pagination"
         @change="handleTableChange"
         row-key="id"
+        class="submission-table"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'type'">
-            <a-tag :color="record.type === 'SUBMISSION' ? 'blue' : 'green'">
+            <a-tag :color="record.type === 'SUBMISSION' ? 'processing' : 'success'">
               {{ record.type === 'SUBMISSION' ? '稿件' : '成品' }}
             </a-tag>
           </template>
           <template v-else-if="column.key === 'title'">
-            {{ record.title }}
+            <div class="title-cell">
+              <a-tooltip :title="record.title">
+                {{ record.title }}
+              </a-tooltip>
+            </div>
           </template>
           <template v-else-if="column.key === 'projectTitle'">
-            {{ record.projectTitle }}
+            <div class="title-cell">
+              <a-tooltip :title="record.projectTitle">
+                {{ record.projectTitle }}
+              </a-tooltip>
+            </div>
           </template>
           <template v-else-if="column.key === 'projectStatus'">
             <a-tag :color="getProjectStatusColor(record.projectStatus)">
@@ -94,40 +116,51 @@
             </a-tag>
           </template>
           <template v-else-if="column.key === 'quotePrice'">
-            {{ record.quotePrice ? `¥${record.quotePrice}` : '-' }}
+            <span class="price-text" v-if="record.quotePrice">¥{{ record.quotePrice }}</span>
+            <span v-else class="no-data">-</span>
           </template>
           <template v-else-if="column.key === 'submitCount'">
             {{ record.submitCount || '-' }}
           </template>
           <template v-else-if="column.key === 'createdAt'">
-            {{ formatDate(record.createdAt || record.submittedAt) }}
+            <span class="time-text">
+              <ClockCircleOutlined />
+              {{ formatDate(record.createdAt || record.submittedAt) }}
+            </span>
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-space>
-              <a-button type="link" @click="handleViewDetail(record)">
+            <a-space size="small" wrap>
+              <a-button type="link" size="small" @click="handleViewDetail(record)">
+                <EyeOutlined />
                 {{ record.type === 'SUBMISSION' ? '查看详情' : '查看成品' }}
               </a-button>
               <template v-if="record.type === 'SUBMISSION'">
                 <a-button
                   v-if="record.status === 'SUBMITTED'"
                   type="link"
-                  @click="handleEdit(record.id)"
+                  size="small"
+                  @click="handleEdit(record.originalId)"
                 >
+                  <EditOutlined />
                   修改
                 </a-button>
                 <a-button
                   v-if="record.status === 'SUBMITTED'"
                   type="link"
                   danger
-                  @click="handleWithdraw(record.id)"
+                  size="small"
+                  @click="handleWithdraw(record.originalId)"
                 >
+                  <DeleteOutlined />
                   撤回
                 </a-button>
                 <a-button
                   v-if="record.status === 'INTERESTED'"
-                  type="link"
+                  type="primary"
+                  size="small"
                   @click="handleEditQuote(record)"
                 >
+                  <DollarOutlined />
                   修改报价
                 </a-button>
               </template>
@@ -144,6 +177,16 @@ import { ref, reactive, onMounted, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { InputNumber } from 'ant-design-vue'
+import {
+  FileTextOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  DollarOutlined
+} from '@ant-design/icons-vue'
 import request from '@/utils/request'
 
 const router = useRouter()
@@ -162,11 +205,11 @@ const columns = [
   { title: '类型', key: 'type', width: 80 },
   { title: '标题', key: 'title', ellipsis: true },
   { title: '项目标题', key: 'projectTitle', ellipsis: true },
-  { title: '项目状态', key: 'projectStatus', width: 120 },
-  { title: '提交状态', key: 'status', width: 120 },
+  { title: '项目状态', key: 'projectStatus', width: 110 },
+  { title: '提交状态', key: 'status', width: 110 },
   { title: '报价', key: 'quotePrice', width: 100 },
-  { title: '提交次数', key: 'submitCount', width: 100 },
-  { title: '提交时间', key: 'createdAt', width: 180 },
+  { title: '提交次数', key: 'submitCount', width: 90 },
+  { title: '提交时间', key: 'createdAt', width: 160 },
   { title: '操作', key: 'action', width: 200, fixed: 'right' }
 ]
 
@@ -177,11 +220,9 @@ const pagination = reactive({
   showTotal: (total) => `共 ${total} 条`
 })
 
-// 合并后的列表
 const displayList = computed(() => {
   let list = []
   
-  // 添加稿件，标记类型
   submissionList.value.forEach(item => {
     list.push({
       ...item,
@@ -191,7 +232,6 @@ const displayList = computed(() => {
     })
   })
   
-  // 添加成品，标记类型
   deliverableList.value.forEach(item => {
     list.push({
       ...item,
@@ -201,7 +241,6 @@ const displayList = computed(() => {
     })
   })
   
-  // 筛选
   let filtered = list
   if (filterForm.type) {
     filtered = filtered.filter(item => item.type === filterForm.type)
@@ -213,7 +252,6 @@ const displayList = computed(() => {
     filtered = filtered.filter(item => item.status === filterForm.status)
   }
   
-  // 排序：按提交时间倒序
   filtered.sort((a, b) => {
     const timeA = a.createdAt || a.submittedAt || ''
     const timeB = b.createdAt || b.submittedAt || ''
@@ -222,7 +260,6 @@ const displayList = computed(() => {
   
   pagination.total = filtered.length
   
-  // 分页
   const start = (pagination.current - 1) * pagination.pageSize
   const end = start + pagination.pageSize
   return filtered.slice(start, end)
@@ -230,9 +267,9 @@ const displayList = computed(() => {
 
 const getProjectStatusColor = (status) => {
   const colors = {
-    'PUBLISHED': 'green',
-    'CLOSED': 'orange',
-    'CONFIRMED': 'blue',
+    'PUBLISHED': 'success',
+    'CLOSED': 'warning',
+    'CONFIRMED': 'processing',
     'COMPLETED': 'purple'
   }
   return colors[status] || 'default'
@@ -251,18 +288,18 @@ const getProjectStatusText = (status) => {
 const getStatusColor = (status, type) => {
   if (type === 'SUBMISSION') {
     const colors = {
-      'SUBMITTED': 'blue',
-      'INTERESTED': 'green',
-      'REJECTED': 'red',
+      'SUBMITTED': 'processing',
+      'INTERESTED': 'success',
+      'REJECTED': 'error',
       'CONFIRMED': 'purple'
     }
     return colors[status] || 'default'
   } else {
     const colors = {
-      'SUBMITTED': 'blue',
-      'APPROVED': 'green',
-      'REJECTED': 'red',
-      'EXPIRED': 'orange'
+      'SUBMITTED': 'processing',
+      'APPROVED': 'success',
+      'REJECTED': 'error',
+      'EXPIRED': 'warning'
     }
     return colors[status] || 'default'
   }
@@ -290,7 +327,7 @@ const getStatusText = (status, type) => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  return dateStr.replace('T', ' ').substring(0, 19)
+  return dateStr.replace('T', ' ').substring(0, 16)
 }
 
 const loadSubmissions = async () => {
@@ -348,7 +385,6 @@ const handleViewDetail = (record) => {
   if (record.type === 'SUBMISSION') {
     router.push(`/front/submissions/${record.originalId}`)
   } else {
-    // 查看成品详情，可以跳转到稿件详情页，显示成品信息
     router.push(`/front/submissions/${record.submissionId}`)
   }
 }
@@ -364,21 +400,26 @@ const handleEditQuote = (record) => {
     title: '修改报价',
     width: 500,
     content: h => {
-      return h('div', [
-        h('p', { style: { marginBottom: '16px' } }, `当前报价：${record.quotePrice ? '¥' + record.quotePrice : '未报价'}`),
-        h('div', { style: { marginBottom: '16px' } }, [
-          h('span', { style: { marginRight: '8px' } }, '新报价：'),
+      return h('div', { style: { padding: '16px 0' } }, [
+        h('p', { style: { marginBottom: '16px', color: '#5e6068' } }, 
+          `当前报价：${record.quotePrice ? '¥' + record.quotePrice : '未报价'}`
+        ),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } }, [
+          h('span', { style: { color: '#14171f', fontWeight: '500' } }, '新报价：'),
           h(InputNumber, {
             modelValue: quoteRef.value,
             'onUpdate:modelValue': (val) => { quoteRef.value = val },
             min: 0,
             precision: 2,
             style: { width: '200px' },
-            placeholder: '请输入新报价'
+            placeholder: '请输入新报价',
+            prefix: '¥'
           })
         ])
       ])
     },
+    okText: '确认修改',
+    cancelText: '取消',
     onOk: async () => {
       if (quoteRef.value === null || quoteRef.value === undefined) {
         message.warning('请输入报价')
@@ -410,11 +451,13 @@ const handleEditQuote = (record) => {
   })
 }
 
-
 const handleWithdraw = (id) => {
   Modal.confirm({
     title: '确认撤回',
     content: '确定要撤回此稿件吗？撤回后无法恢复。',
+    okText: '确认撤回',
+    okType: 'danger',
+    cancelText: '取消',
     onOk: async () => {
       try {
         const res = await request.delete(`/api/submissions/${id}`)
@@ -437,7 +480,108 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.submission-list-container {
-  padding: 20px;
+.submission-container {
+  padding: 24px;
+  background: var(--bg-secondary);
+  min-height: calc(100vh - 140px);
+}
+
+.submission-card {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.submission-card :deep(.ant-card-head) {
+  border-bottom: 1px solid var(--border-light);
+  padding: 20px 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title .anticon {
+  color: var(--primary-color);
+}
+
+/* 筛选区域 */
+.filter-section {
+  padding: 20px 24px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.filter-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+}
+
+/* 表格样式 */
+.submission-table :deep(.ant-table-thead > tr > th) {
+  background: var(--bg-secondary) !important;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 14px 16px;
+}
+
+.submission-table :deep(.ant-table-tbody > tr > td) {
+  padding: 14px 16px;
+}
+
+.submission-table :deep(.ant-table-tbody > tr:hover > td) {
+  background: var(--primary-light) !important;
+}
+
+.title-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.price-text {
+  color: var(--salary-color);
+  font-weight: 600;
+}
+
+.no-data {
+  color: var(--text-disabled);
+}
+
+.time-text {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .submission-container {
+    padding: 16px;
+  }
+  
+  .filter-form {
+    flex-wrap: wrap;
+  }
+  
+  .filter-form :deep(.ant-form-item) {
+    margin-bottom: 12px;
+  }
 }
 </style>

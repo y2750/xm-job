@@ -32,6 +32,16 @@ public interface ProjectOrderMapper {
     @Select("select * from project_order where project_id = #{projectId}")
     List<ProjectOrder> selectByProjectId(Integer projectId);
     
+    @Select("select project_order.*, " +
+            "user.name as freelancerName, user.avatar as freelancerAvatar " +
+            "from project_order " +
+            "left join freelancer on project_order.freelancer_id = freelancer.id " +
+            "left join user on freelancer.user_id = user.id " +
+            "where project_order.project_id = #{projectId} " +
+            "and project_order.status = 'ACCEPTED' " +
+            "order by project_order.accepted_at desc")
+    List<ProjectOrder> selectByProjectIdWithFreelancer(Integer projectId);
+    
     List<ProjectOrder> selectAll(ProjectOrder order);
 }
 

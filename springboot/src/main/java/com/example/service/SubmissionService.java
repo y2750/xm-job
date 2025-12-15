@@ -45,6 +45,8 @@ public class SubmissionService {
     private PaymentService paymentService;
     @Resource
     private com.example.service.MessageService messageService;
+    @Resource
+    private NotificationService notificationService;
 
     /**
      * 提交稿件
@@ -109,8 +111,10 @@ public class SubmissionService {
         // 发送通知给企业：收到新的稿件
         com.example.entity.Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
         if (enterprise != null) {
-            String notificationContent = String.format("您的项目《%s》收到了新的稿件，请及时查看。", project.getTitle());
-            messageService.sendNotification(project.getId(), enterprise.getEmployId(), "ENTERPRISE", notificationContent);
+            String title = "收到新稿件";
+            String content = String.format("您的项目《%s》收到了新的稿件，请及时查看。", project.getTitle());
+            notificationService.sendIndividualNotification("SUBMISSION", enterprise.getEmployId(), "ENTERPRISE",
+                    title, content, project.getId(), submission.getId(), null);
         }
     }
 
@@ -419,6 +423,32 @@ public class SubmissionService {
         }
         
         return submissionMapper.selectByFreelancerId(freelancer.getId());
+    }
+
+    /**
+     * 根据项目ID查询当前用户的稿件
+     */
+    public Submission selectMySubmissionByProjectId(Integer projectId) {
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            throw new CustomException(ResultCodeEnum.NO_AUTH_ERROR);
+        }
+        
+        Freelancer freelancer = freelancerMapper.selectByUserId(currentUser.getId());
+        if (freelancer == null) {
+            return null;
+        }
+        
+        // 查询该自由职业者在该项目下的所有稿件
+        List<Submission> submissions = submissionMapper.selectByFreelancerId(freelancer.getId());
+        // 过滤出该项目的稿件，并返回状态为SUBMITTED、INTERESTED或CONFIRMED的稿件
+        return submissions.stream()
+            .filter(s -> s.getProjectId().equals(projectId) 
+                && ("SUBMITTED".equals(s.getStatus()) 
+                    || "INTERESTED".equals(s.getStatus()) 
+                    || "CONFIRMED".equals(s.getStatus())))
+            .findFirst()
+            .orElse(null);
     }
 }
 

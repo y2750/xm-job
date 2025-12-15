@@ -115,14 +115,26 @@ const handleUpload = async ({ file, onSuccess, onError }) => {
 
 const loadSubmission = async () => {
   try {
-    const id = route.params.id
+    let id = route.params.id
     if (!id) {
       message.error('稿件ID不存在')
       router.back()
       return
     }
     
-    const res = await request.get(`/api/submissions/${id}`)
+    // 处理可能的 submission_7 格式，提取数字ID
+    if (typeof id === 'string' && id.startsWith('submission_')) {
+      id = id.replace('submission_', '')
+    }
+    // 确保是数字
+    const idNum = parseInt(id)
+    if (isNaN(idNum)) {
+      message.error('稿件ID格式错误')
+      router.back()
+      return
+    }
+    
+    const res = await request.get(`/api/submissions/${idNum}`)
     if (res.code === '200') {
       const submission = res.data
       submissionId.value = submission.id
@@ -151,39 +163,162 @@ const formatFileSize = (bytes) => {
 
 const handleDownload = async (attachmentId) => {
   try {
-    const res = await request.get(`/api/attachments/download/${attachmentId}`, {
-      responseType: 'blob'
-    })
-    if (res instanceof Blob) {
-      const blobUrl = window.URL.createObjectURL(res)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      const attachment = existingAttachments.value.find(a => a.id === attachmentId)
-      link.download = attachment ? attachment.fileName : 'download'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(blobUrl)
-      message.success('下载成功')
-    } else {
-      message.error('下载失败')
+    // 获取附件信息以获取文件名
+    const attachment = existingAttachments.value.find(a => a.id === attachmentId)
+    if (!attachment) {
+      message.error('附件不存在')
+      return
     }
-  } catch (error) {
-    console.error('下载附件失败:', error)
-    if (error.response && error.response.data instanceof Blob) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        try {
-          const errorData = JSON.parse(reader.result)
-          message.error(errorData.msg || '下载失败')
-        } catch (e) {
-          message.error('下载失败')
+    const fileName = attachment.fileName || 'download'
+    
+    console.log('开始下载附件:', attachmentId, fileName)
+    
+    // 使用原生 fetch 以便获取完整响应信息
+    const userStr = localStorage.getItem('xm-user') || '{}'
+    let token = ''
+    try {
+      const user = JSON.parse(userStr)
+      token = user.token || ''
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+    }
+    
+    const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost:9090'
+    const url = `${baseUrl}/api/attachments/download/${attachmentId}`
+    
+    console.log('下载URL:', url, 'Token:', token ? '已设置' : '未设置')
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'token': token
+      }
+    })
+    
+    console.log('响应状态:', response.status, response.statusText)
+    console.log('响应头:', {
+      'Content-Type': response.headers.get('Content-Type'),
+      'Content-Disposition': response.headers.get('Content-Disposition'),
+      'Content-Length': response.headers.get('Content-Length')
+    })
+    
+    // 检查响应状态
+    if (!response.ok) {
+      console.error('响应状态错误:', response.status, response.statusText)
+      // 错误响应，尝试解析 JSON
+      const contentType = response.headers.get('Content-Type') || ''
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json()
+        console.error('错误响应:', errorData)
+        message.error(errorData.msg || '下载失败')
+        return
+      } else {
+        // 尝试解析 Blob 中的 JSON
+        const blob = await response.blob()
+        console.error('错误响应Blob大小:', blob.size)
+        if (blob.size < 1024) {
+          const text = await blob.text()
+          console.error('错误响应内容:', text)
+          try {
+            const errorData = JSON.parse(text)
+            message.error(errorData.msg || '下载失败')
+            return
+          } catch (e) {
+            message.error('下载失败: ' + response.statusText)
+            return
+          }
         }
       }
-      reader.readAsText(error.response.data)
-    } else {
-      message.error('下载失败')
+      message.error('下载失败: ' + response.statusText)
+      return
     }
+    
+    // 检查 Content-Type
+    const contentType = response.headers.get('Content-Type') || ''
+    console.log('Content-Type:', contentType)
+    
+    // 如果是 JSON 说明是错误响应
+    if (contentType.includes('application/json')) {
+      const errorData = await response.json()
+      console.error('JSON错误响应:', errorData)
+      message.error(errorData.msg || '下载失败')
+      return
+    }
+    
+    // 正常文件流，下载
+    const blob = await response.blob()
+    console.log('文件Blob大小:', blob.size, '字节', '类型:', blob.type)
+    
+    if (blob.size === 0) {
+      console.error('文件大小为0')
+      message.error('下载失败：文件为空')
+      return
+    }
+    
+    // 如果文件很小（小于1KB），可能是错误响应，检查一下
+    if (blob.size < 1024) {
+      // 克隆 Blob 以便检查
+      const clonedBlob = blob.slice()
+      const text = await clonedBlob.text()
+      console.log('小文件内容预览:', text.substring(0, 200))
+      try {
+        const errorData = JSON.parse(text)
+        if (errorData.code && errorData.code !== '200') {
+          console.error('下载错误:', errorData)
+          message.error(errorData.msg || '下载失败')
+          return
+        }
+      } catch (e) {
+        // 不是 JSON，继续下载（可能是真的小文件）
+        console.log('不是JSON错误，继续下载')
+      }
+    }
+    
+    // 创建下载链接，强制下载到默认路径
+    console.log('创建下载链接，文件名:', fileName, 'Blob大小:', blob.size)
+    
+    // 确保文件名不包含特殊字符
+    const safeFileName = fileName.replace(/[<>:"/\\|?*]/g, '_')
+    
+    const blobUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = safeFileName  // 保持原始文件名（清理特殊字符）
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    
+    console.log('触发下载点击，链接:', link.href.substring(0, 50) + '...')
+    
+    try {
+      link.click()
+      console.log('点击成功')
+    } catch (clickError) {
+      console.error('点击失败:', clickError)
+      // 如果点击失败，尝试使用 window.open
+      window.open(blobUrl, '_blank')
+    }
+    
+    // 延迟删除，确保下载开始
+    setTimeout(() => {
+      try {
+        if (link.parentNode) {
+          document.body.removeChild(link)
+        }
+        window.URL.revokeObjectURL(blobUrl)
+        console.log('清理下载链接完成')
+      } catch (e) {
+        console.warn('清理链接时出错:', e)
+      }
+    }, 500)  // 增加延迟时间
+    
+    message.success('下载成功')
+  } catch (error) {
+    console.error('下载附件失败:', error)
+    console.error('错误堆栈:', error.stack)
+    if (error.message) {
+      console.error('错误消息:', error.message)
+    }
+    message.error('下载失败：' + (error.message || '未知错误'))
   }
 }
 

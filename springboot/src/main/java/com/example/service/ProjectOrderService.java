@@ -38,6 +38,8 @@ public class ProjectOrderService {
     private PaymentService paymentService;
     @Resource
     private com.example.service.MessageService messageService;
+    @Resource
+    private NotificationService notificationService;
 
     /**
      * 接单（自由职业者接单项目）
@@ -101,8 +103,9 @@ public class ProjectOrderService {
         // 发送通知给企业：有新的接单者
         com.example.entity.Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
         if (enterprise != null) {
-            String notificationContent = String.format("您的项目《%s》有新的接单者，请及时查看。", project.getTitle());
-            messageService.sendNotification(projectId, enterprise.getEmployId(), "ENTERPRISE", notificationContent);
+            notificationService.sendIndividualNotification("PROJECT_STATUS_CHANGE", enterprise.getEmployId(), "ENTERPRISE",
+                    "项目有新接单者", String.format("您的项目《%s》有新的接单者，请及时查看。", project.getTitle()),
+                    projectId, null, null);
         }
     }
 
@@ -141,8 +144,9 @@ public class ProjectOrderService {
         // 发送通知给企业：接单者取消了接单
         com.example.entity.Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
         if (enterprise != null) {
-            String notificationContent = String.format("您的项目《%s》有接单者取消了接单。", project.getTitle());
-            messageService.sendNotification(project.getId(), enterprise.getEmployId(), "ENTERPRISE", notificationContent);
+            notificationService.sendIndividualNotification("PROJECT_STATUS_CHANGE", enterprise.getEmployId(), "ENTERPRISE",
+                    "接单者取消接单", String.format("您的项目《%s》有接单者取消了接单。", project.getTitle()),
+                    project.getId(), null, null);
         }
     }
     
@@ -271,6 +275,13 @@ public class ProjectOrderService {
         ProjectOrder query = new ProjectOrder();
         query.setFreelancerId(freelancer.getId());
         return orderMapper.selectAll(query);
+    }
+
+    /**
+     * 查询项目的接单人列表（包含freelancer信息）
+     */
+    public List<ProjectOrder> selectByProjectIdWithFreelancer(Integer projectId) {
+        return orderMapper.selectByProjectIdWithFreelancer(projectId);
     }
 }
 

@@ -34,6 +34,8 @@ public class EmployService {
     @Resource
     private com.example.service.MessageService messageService;
     @Resource
+    private NotificationService notificationService;
+    @Resource
     private com.example.mapper.AdminMapper adminMapper;
 
     public void add(Employ employ) {
@@ -94,7 +96,8 @@ public class EmployService {
                 
                 for (com.example.entity.Admin admin : admins) {
                     // 管理员通知使用ADMIN作为recipientType
-                    messageService.sendNotification(null, admin.getId(), "ADMIN", notificationContent);
+                    notificationService.sendIndividualNotification("CERTIFICATION", admin.getId(), "ADMIN",
+                            "企业资料修改", notificationContent, null, null, null);
                 }
             }
         }

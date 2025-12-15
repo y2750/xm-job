@@ -58,15 +58,38 @@
                   <div>提交时间：{{ formatDate(item.createdAt) }}</div>
                 </template>
               </a-list-item-meta>
+              <template #actions>
+                <a-button
+                  v-if="['SUBMITTED', 'INTERESTED', 'CONFIRMED'].includes(item.status)"
+                  type="primary"
+                  style="background-color: #52c41a; border-color: #52c41a"
+                  @click="handleStartChat(item.id)"
+                >
+                  立即沟通
+                </a-button>
+              </template>
             </a-list-item>
           </template>
         </a-list>
       </div>
       <a-empty v-if="userRole === 'EMPLOY' && submissions.length === 0" description="暂无稿件" />
 
-      <div style="margin-top: 20px; text-align: right">
-        <a-button v-if="userRole === 'USER' && project && project.status === 'PUBLISHED'" type="primary" @click="handleSubmit">提交稿件</a-button>
-        <a-button style="margin-left: 8px" @click="handleBack">返回</a-button>
+      <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center">
+        <div>
+          <a-button
+            v-if="userRole === 'USER' && project && project.status === 'PUBLISHED'"
+            type="primary"
+            size="large"
+            style="background-color: #52c41a; border-color: #52c41a"
+            @click="handleStartChat"
+          >
+            立即沟通
+          </a-button>
+        </div>
+        <div>
+          <a-button v-if="userRole === 'USER' && project && project.status === 'PUBLISHED' && !canChat" type="primary" @click="handleSubmit">提交稿件</a-button>
+          <a-button style="margin-left: 8px" @click="handleBack">返回</a-button>
+        </div>
       </div>
     </a-card>
 
@@ -130,6 +153,8 @@ const loading = ref(false)
 const project = ref(null)
 const submissions = ref([])
 const userRole = ref(localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')).role : '')
+const mySubmission = ref(null)
+const canChat = ref(false)
 
 const loadProject = async () => {
   loading.value = true
@@ -208,6 +233,21 @@ const loadSubmissions = async () => {
     } catch (error) {
       console.error('加载稿件列表失败', error)
     }
+  } else if (userRole.value === 'USER') {
+    // 加载当前用户在该项目下的稿件
+    try {
+      const res = await request.get(`/api/submissions/project/${route.params.id}/my`)
+      if (res.code === '200' && res.data) {
+        mySubmission.value = res.data
+        // 如果稿件状态为SUBMITTED、INTERESTED或CONFIRMED，可以聊天
+        canChat.value = ['SUBMITTED', 'INTERESTED', 'CONFIRMED'].includes(res.data.status)
+      } else {
+        canChat.value = false
+      }
+    } catch (error) {
+      console.error('加载我的稿件失败', error)
+      canChat.value = false
+    }
   }
 }
 
@@ -240,6 +280,24 @@ const handleViewEnterprise = async () => {
       console.error('加载企业信息失败:', error)
       message.error('加载企业信息失败')
     }
+  }
+}
+
+const handleStartChat = (submissionIdParam) => {
+  // 如果是企业端，使用传入的submissionId参数
+  if (userRole.value === 'EMPLOY' && submissionIdParam) {
+    // 跳转到聊天页面，Conversation.vue会自动检查是否存在聊天记录，不存在则创建虚拟聊天项
+    router.push(`/front/conversation/${submissionIdParam}`)
+    return
+  }
+  
+  // 如果是自由职业者端
+  if (mySubmission.value && mySubmission.value.id) {
+    // 如果有稿件，使用submissionId
+    router.push(`/front/conversation/${mySubmission.value.id}`)
+  } else {
+    // 如果没有稿件，通过projectId跳转（未接单也可以沟通）
+    router.push(`/front/conversation/project/${route.params.id}`)
   }
 }
 

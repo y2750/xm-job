@@ -22,6 +22,8 @@ public class ProjectController {
     private ProjectService projectService;
     @Resource
     private SubmissionMapper submissionMapper;
+    @Resource
+    private com.example.mapper.ProjectPaymentMapper projectPaymentMapper;
 
     /**
      * 发布项目
@@ -38,6 +40,16 @@ public class ProjectController {
     @PutMapping
     public Result update(@RequestBody Project project) {
         projectService.updateById(project);
+        return Result.success();
+    }
+    
+    /**
+     * 更新项目（带ID路径参数）
+     */
+    @PutMapping("/{id}")
+    public Result updateById(@PathVariable Integer id, @RequestBody Project project) {
+        project.setId(id);
+        projectService.updateByIdWithNotification(project);
         return Result.success();
     }
 
@@ -146,6 +158,45 @@ public class ProjectController {
     public Result republish(@PathVariable Integer id) {
         projectService.republishProject(id);
         return Result.success();
+    }
+    
+    /**
+     * 计算预算变更后的保证金变化
+     */
+    @PostMapping("/{id}/calculate-deposit-change")
+    public Result calculateDepositChange(@PathVariable Integer id, @RequestBody java.util.Map<String, Object> params) {
+        java.math.BigDecimal newBudgetMin = new java.math.BigDecimal(params.get("budgetMin").toString());
+        java.math.BigDecimal newBudgetMax = new java.math.BigDecimal(params.get("budgetMax").toString());
+        
+        java.util.Map<String, Object> result = projectService.calculateDepositChange(id, newBudgetMin, newBudgetMax);
+        return Result.success(result);
+    }
+    
+    /**
+     * 更新项目（带支付方式参数）
+     */
+    @PutMapping("/{id}/with-payment")
+    public Result updateWithPayment(@PathVariable Integer id, @RequestBody java.util.Map<String, Object> params) {
+        Project project = new Project();
+        project.setId(id);
+        project.setTitle((String) params.get("title"));
+        project.setDescription((String) params.get("description"));
+        project.setSkillsRequired((String) params.get("skillsRequired"));
+        if (params.get("budgetMin") != null) {
+            project.setBudgetMin(new java.math.BigDecimal(params.get("budgetMin").toString()));
+        }
+        if (params.get("budgetMax") != null) {
+            project.setBudgetMax(new java.math.BigDecimal(params.get("budgetMax").toString()));
+        }
+        if (params.get("deadline") != null) {
+            project.setDeadline(java.time.LocalDateTime.parse(params.get("deadline").toString() + "T00:00:00"));
+        }
+        project.setDeliveryRequirement((String) params.get("deliveryRequirement"));
+        
+        String paymentMethod = (String) params.get("paymentMethod");
+        
+        java.util.Map<String, Object> result = projectService.updateByIdWithPayment(project, paymentMethod);
+        return Result.success(result);
     }
 }
 

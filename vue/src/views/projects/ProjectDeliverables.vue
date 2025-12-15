@@ -347,27 +347,67 @@ const handleDownload = async (attachmentId) => {
       }
     })
     
+    // 检查响应类型
+    const contentType = response.headers.get('Content-Type')
+    
     if (!response.ok) {
-      const errorData = await response.json()
-      message.error(errorData.msg || '下载失败')
+      // 尝试解析错误信息
+      const contentType = response.headers.get('Content-Type')
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json()
+        message.error(errorData.msg || '下载失败')
+      } else {
+        message.error('下载失败')
+      }
       return
     }
     
+    // 后端返回文件流（无论是COS还是本地文件）
     const blob = await response.blob()
+    
+    // 检查是否是错误响应（JSON格式）
+    if (blob.size < 1024) {
+      const text = await blob.text()
+      try {
+        const errorData = JSON.parse(text)
+        if (errorData.code && errorData.code !== '200') {
+          message.error(errorData.msg || '下载失败')
+          return
+        }
+      } catch (e) {
+        // 不是 JSON，继续下载
+      }
+    }
+    
+    // 从响应头获取文件名，如果没有则使用默认值
     const contentDisposition = response.headers.get('Content-Disposition')
     let fileName = 'download'
     if (contentDisposition) {
       const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
       if (fileNameMatch && fileNameMatch[1]) {
         fileName = fileNameMatch[1].replace(/['"]/g, '')
-        fileName = decodeURIComponent(fileName)
+        // 处理编码
+        try {
+          fileName = decodeURIComponent(fileName)
+        } catch (e) {
+          // 如果解码失败，尝试 ISO-8859-1 到 UTF-8 转换
+          try {
+            fileName = new TextDecoder('utf-8').decode(
+              new TextEncoder().encode(fileName)
+            )
+          } catch (e2) {
+            // 保持原样
+          }
+        }
       }
     }
     
+    // 创建下载链接，强制下载到默认路径，保持原始文件名
     const url2 = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url2
-    a.download = fileName
+    a.download = fileName  // 保持原始文件名
+    a.style.display = 'none'
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url2)

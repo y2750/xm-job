@@ -1,9 +1,12 @@
 <template>
   <div class="profile-container">
-    <a-card>
+    <a-card class="profile-card">
       <template #title>
         <div class="card-header">
-          <h2>个人资料</h2>
+          <h2 class="card-title">
+            <UserOutlined />
+            个人资料
+          </h2>
           <a-space v-if="!isEditMode">
             <a-button type="primary" @click="handleEdit">
               <template #icon><EditOutlined /></template>
@@ -25,100 +28,133 @@
         <a-row :gutter="[24, 24]">
           <!-- 基本信息卡片 -->
           <a-col :xs="24" :md="12">
-            <a-card class="info-card" :bordered="false">
-              <template #title>
-                <div class="card-title">
-                  <UserOutlined />
-                  <span>基本信息</span>
+            <div class="info-section">
+              <div class="section-header">
+                <IdcardOutlined />
+                <span>基本信息</span>
+              </div>
+              <div class="profile-header">
+                <a-avatar :size="80" :src="form.userAvatar" v-if="form.userAvatar && form.userAvatar.trim()" class="profile-avatar">
+                  <template #icon><UserOutlined /></template>
+                </a-avatar>
+                <a-avatar :size="80" v-else class="profile-avatar default">
+                  <template #icon><UserOutlined /></template>
+                </a-avatar>
+                <div class="profile-info">
+                  <h3 class="profile-name">{{ form.userName || '未设置姓名' }}</h3>
+                  <div class="profile-meta">
+                    <a-tag :color="form.verified ? 'success' : 'warning'">
+                      {{ form.verified ? '已认证' : '未认证' }}
+                    </a-tag>
+                    <a-tag color="processing">
+                      <StarOutlined />
+                      信誉 {{ form.creditScore || 100 }}分
+                    </a-tag>
+                  </div>
                 </div>
-              </template>
-              <a-descriptions :column="1" bordered>
-                <a-descriptions-item label="姓名">
-                  <span class="info-value">{{ form.userName || '-' }}</span>
-                </a-descriptions-item>
-                <a-descriptions-item label="头像">
-                  <a-avatar :size="64" :src="form.userAvatar" v-if="form.userAvatar && form.userAvatar.trim()">
-                    <template #icon><UserOutlined /></template>
-                  </a-avatar>
-                  <span v-else class="info-empty">未设置</span>
-                </a-descriptions-item>
-                <a-descriptions-item label="电话">
-                  <span class="info-value">{{ form.userPhone || '-' }}</span>
-                </a-descriptions-item>
-                <a-descriptions-item label="邮箱">
-                  <span class="info-value">{{ form.userEmail || '-' }}</span>
-                </a-descriptions-item>
-              </a-descriptions>
-            </a-card>
+              </div>
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">
+                    <PhoneOutlined />
+                    电话
+                  </span>
+                  <span class="info-value">{{ form.userPhone || '未设置' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">
+                    <MailOutlined />
+                    邮箱
+                  </span>
+                  <span class="info-value">{{ form.userEmail || '未设置' }}</span>
+                </div>
+              </div>
+            </div>
           </a-col>
 
           <!-- 职业信息卡片 -->
           <a-col :xs="24" :md="12">
-            <a-card class="info-card" :bordered="false">
-              <template #title>
-                <div class="card-title">
-                  <FileTextOutlined />
-                  <span>职业信息</span>
-                </div>
-              </template>
-              <a-descriptions :column="1" bordered>
-                <a-descriptions-item label="技能标签">
-                  <div class="skills-tags">
-                    <a-tag v-for="skill in skillList" :key="skill" color="blue">
-                      {{ skill }}
-                    </a-tag>
-                    <span v-if="skillList.length === 0" class="info-empty">未设置</span>
+            <div class="info-section">
+              <div class="section-header">
+                <FileTextOutlined />
+                <span>职业信息</span>
+              </div>
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">
+                    <TagsOutlined />
+                    技能标签
+                  </span>
+                  <div class="info-value">
+                    <div class="skills-tags" v-if="skillList.length > 0">
+                      <a-tag v-for="skill in skillList" :key="skill" color="processing">
+                        {{ skill }}
+                      </a-tag>
+                    </div>
+                    <span v-else class="empty-text">未设置</span>
                   </div>
-                </a-descriptions-item>
-                <a-descriptions-item label="作品集链接">
-                  <a v-if="form.portfolioUrl" :href="form.portfolioUrl" target="_blank" class="info-link">
-                    {{ form.portfolioUrl }}
+                </div>
+                <div class="info-item">
+                  <span class="info-label">
                     <LinkOutlined />
-                  </a>
-                  <span v-else class="info-empty">未设置</span>
-                </a-descriptions-item>
-                <a-descriptions-item label="作品数量">
+                    作品集链接
+                  </span>
+                  <span class="info-value">
+                    <a v-if="form.portfolioUrl" :href="form.portfolioUrl" target="_blank" class="portfolio-link">
+                      {{ form.portfolioUrl }}
+                      <ExportOutlined />
+                    </a>
+                    <span v-else class="empty-text">未设置</span>
+                  </span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">
+                    <FolderOutlined />
+                    作品数量
+                  </span>
                   <span class="info-value">{{ form.portfolioCount || 0 }} 个</span>
-                </a-descriptions-item>
-                <a-descriptions-item label="认证状态">
-                  <a-tag :color="form.verified ? 'green' : 'orange'">
-                    {{ form.verified ? '已认证' : '未认证' }}
-                  </a-tag>
-                </a-descriptions-item>
-                <a-descriptions-item label="信誉分">
-                  <a-tag color="blue" class="credit-score">
-                    <StarOutlined />
-                    {{ form.creditScore || 100 }} 分
-                  </a-tag>
-                </a-descriptions-item>
-              </a-descriptions>
-            </a-card>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">
+                    <TrophyOutlined />
+                    信誉分
+                  </span>
+                  <span class="info-value credit-score-value">
+                    <a-progress 
+                      :percent="form.creditScore || 100" 
+                      :size="[160, 10]"
+                      :status="form.creditScore >= 80 ? 'success' : form.creditScore >= 60 ? 'normal' : 'exception'"
+                      :stroke-color="{ '0%': '#00a6a7', '100%': '#00c4c4' }"
+                      :format="(percent) => `${percent}分`"
+                    />
+                  </span>
+                </div>
+              </div>
+            </div>
           </a-col>
         </a-row>
       </div>
 
       <!-- 编辑模式 -->
-      <a-form v-else :model="form" :rules="rules" ref="formRef" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+      <a-form v-else :model="form" :rules="rules" ref="formRef" layout="vertical" class="edit-form">
         <a-row :gutter="24">
           <a-col :xs="24" :md="12">
-            <a-card class="edit-card" :bordered="false">
-              <template #title>
-                <div class="card-title">
-                  <UserOutlined />
-                  <span>基本信息</span>
-                </div>
-              </template>
+            <div class="edit-section">
+              <div class="section-header">
+                <IdcardOutlined />
+                <span>基本信息</span>
+              </div>
               
               <a-form-item label="姓名" name="userName">
-                <a-input v-model:value="form.userName" placeholder="请输入姓名" />
+                <a-input v-model:value="form.userName" placeholder="请输入姓名" size="large" />
               </a-form-item>
               
               <a-form-item label="头像" name="userAvatar">
                 <div class="avatar-upload">
-                  <a-avatar :size="100" :src="form.userAvatar" v-if="form.userAvatar && form.userAvatar.trim()">
+                  <a-avatar :size="100" :src="form.userAvatar" v-if="form.userAvatar && form.userAvatar.trim()" class="upload-avatar">
                     <template #icon><UserOutlined /></template>
                   </a-avatar>
-                  <a-avatar :size="100" v-else>
+                  <a-avatar :size="100" v-else class="upload-avatar default">
                     <template #icon><UserOutlined /></template>
                   </a-avatar>
                   <a-upload
@@ -126,9 +162,8 @@
                     :before-upload="beforeUpload"
                     :customRequest="handleUpload"
                     accept="image/*"
-                    class="upload-btn"
                   >
-                    <a-button type="primary" :loading="uploading">
+                    <a-button type="primary" :loading="uploading" class="upload-btn">
                       <template #icon><UploadOutlined /></template>
                       上传头像
                     </a-button>
@@ -137,34 +172,41 @@
               </a-form-item>
               
               <a-form-item label="电话" name="userPhone">
-                <a-input v-model:value="form.userPhone" placeholder="请输入联系电话" />
+                <a-input v-model:value="form.userPhone" placeholder="请输入联系电话" size="large">
+                  <template #prefix><PhoneOutlined class="input-icon" /></template>
+                </a-input>
               </a-form-item>
               
               <a-form-item label="邮箱" name="userEmail">
-                <a-input v-model:value="form.userEmail" placeholder="请输入邮箱地址" />
+                <a-input v-model:value="form.userEmail" placeholder="请输入邮箱地址" size="large">
+                  <template #prefix><MailOutlined class="input-icon" /></template>
+                </a-input>
               </a-form-item>
-            </a-card>
+            </div>
           </a-col>
 
           <a-col :xs="24" :md="12">
-            <a-card class="edit-card" :bordered="false">
-              <template #title>
-                <div class="card-title">
-                  <FileTextOutlined />
-                  <span>职业信息</span>
-                </div>
-              </template>
+            <div class="edit-section">
+              <div class="section-header">
+                <FileTextOutlined />
+                <span>职业信息</span>
+              </div>
               
               <a-form-item label="技能标签" name="skills">
                 <a-input 
                   v-model:value="form.skills" 
-                  placeholder="请输入技能标签，用逗号分隔（如：Java,Spring,Vue 或 Java，Spring，Vue）" 
-                />
+                  placeholder="请输入技能标签，用逗号分隔" 
+                  size="large"
+                >
+                  <template #prefix><TagsOutlined class="input-icon" /></template>
+                </a-input>
                 <div class="form-tip">多个技能请用逗号分隔（支持中文逗号，和英文逗号,）</div>
               </a-form-item>
               
               <a-form-item label="作品集链接" name="portfolioUrl">
-                <a-input v-model:value="form.portfolioUrl" placeholder="请输入作品集链接" />
+                <a-input v-model:value="form.portfolioUrl" placeholder="请输入作品集链接" size="large">
+                  <template #prefix><LinkOutlined class="input-icon" /></template>
+                </a-input>
               </a-form-item>
               
               <a-form-item label="作品数量" name="portfolioCount">
@@ -172,25 +214,31 @@
                   v-model:value="form.portfolioCount" 
                   :min="0" 
                   placeholder="作品数量"
+                  size="large"
                   style="width: 100%"
                 />
               </a-form-item>
               
               <a-form-item label="认证状态">
-                <a-tag :color="form.verified ? 'green' : 'orange'">
+                <a-tag :color="form.verified ? 'success' : 'warning'" class="status-tag">
                   {{ form.verified ? '已认证' : '未认证' }}
                 </a-tag>
                 <div class="form-tip">认证状态由管理员审核</div>
               </a-form-item>
               
               <a-form-item label="信誉分">
-                <a-tag color="blue" class="credit-score">
-                  <StarOutlined />
-                  {{ form.creditScore || 100 }} 分
-                </a-tag>
+                <div class="credit-display">
+                  <a-progress 
+                    :percent="form.creditScore || 100" 
+                    :size="[180, 10]"
+                    :status="form.creditScore >= 80 ? 'success' : form.creditScore >= 60 ? 'normal' : 'exception'"
+                    :stroke-color="{ '0%': '#00a6a7', '100%': '#00c4c4' }"
+                    :format="(percent) => `${percent}分`"
+                  />
+                </div>
                 <div class="form-tip">信誉分根据项目完成情况自动计算</div>
               </a-form-item>
-            </a-card>
+            </div>
           </a-col>
         </a-row>
       </a-form>
@@ -208,7 +256,14 @@ import {
   SaveOutlined,
   FileTextOutlined,
   LinkOutlined,
-  StarOutlined
+  StarOutlined,
+  IdcardOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  TagsOutlined,
+  FolderOutlined,
+  TrophyOutlined,
+  ExportOutlined
 } from '@ant-design/icons-vue'
 import request from '@/utils/request'
 
@@ -229,7 +284,6 @@ const form = reactive({
   creditScore: 100
 })
 
-// 保存原始数据用于取消时恢复
 const originalForm = reactive({})
 
 const rules = {
@@ -243,12 +297,10 @@ const rules = {
   ]
 }
 
-// 计算技能标签列表（支持中文逗号和英文逗号）
 const skillList = computed(() => {
   if (!form.skills || form.skills.trim() === '') {
     return []
   }
-  // 同时支持中文逗号（，）和英文逗号（,）
   return form.skills.split(/[,，]/).map(s => s.trim()).filter(s => s)
 })
 
@@ -258,7 +310,6 @@ const loadProfile = async () => {
     if (res.code === '200' && res.data) {
       const data = res.data
       form.userName = data.userName || ''
-      // 头像字段：如果为 null、undefined 或空字符串，则设为空字符串
       form.userAvatar = (data.userAvatar && data.userAvatar.trim()) ? data.userAvatar.trim() : ''
       form.userPhone = data.userPhone || ''
       form.userEmail = data.userEmail || ''
@@ -268,7 +319,6 @@ const loadProfile = async () => {
       form.verified = data.verified || false
       form.creditScore = data.creditScore || 100
       
-      // 保存原始数据
       Object.assign(originalForm, { ...form })
     }
   } catch (error) {
@@ -279,12 +329,10 @@ const loadProfile = async () => {
 
 const handleEdit = () => {
   isEditMode.value = true
-  // 保存当前数据作为原始数据
   Object.assign(originalForm, { ...form })
 }
 
 const handleCancel = () => {
-  // 恢复原始数据
   Object.assign(form, { ...originalForm })
   isEditMode.value = false
   formRef.value?.resetFields()
@@ -338,7 +386,6 @@ const handleSubmit = async () => {
     const res = await request.put('/api/freelancers/profile', form)
     if (res.code === '200') {
       message.success('保存成功')
-      // 更新本地存储的用户信息
       const user = JSON.parse(localStorage.getItem('xm-user') || '{}')
       if (form.userName) user.name = form.userName
       if (form.userAvatar) user.avatar = form.userAvatar
@@ -346,7 +393,6 @@ const handleSubmit = async () => {
       if (form.userEmail) user.email = form.userEmail
       localStorage.setItem('xm-user', JSON.stringify(user))
       
-      // 更新原始数据
       Object.assign(originalForm, { ...form })
       isEditMode.value = false
     } else {
@@ -354,7 +400,6 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     if (error.errorFields) {
-      // 表单验证错误
       return
     }
     console.error('保存失败', error)
@@ -372,8 +417,18 @@ onMounted(() => {
 <style scoped>
 .profile-container {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 64px);
+  background: var(--bg-secondary);
+  min-height: calc(100vh - 140px);
+}
+
+.profile-card {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-card :deep(.ant-card-head) {
+  border-bottom: 1px solid var(--border-light);
+  padding: 20px 24px;
 }
 
 .card-header {
@@ -382,11 +437,18 @@ onMounted(() => {
   align-items: center;
 }
 
-.card-header h2 {
-  margin: 0;
-  font-size: 20px;
+.card-title {
+  font-size: 18px;
   font-weight: 600;
-  color: #262626;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title .anticon {
+  color: var(--primary-color);
 }
 
 /* 查看模式样式 */
@@ -394,54 +456,83 @@ onMounted(() => {
   padding: 8px 0;
 }
 
-.info-card {
+.info-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
   height: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  transition: all 0.3s;
 }
 
-.info-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.card-title {
+.section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 16px;
   font-weight: 600;
-  color: #1890ff;
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.card-title .anticon {
-  font-size: 18px;
+.profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 166, 167, 0.2);
+}
+
+.profile-avatar.default {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.profile-info {
+  margin-left: 20px;
+}
+
+.profile-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+}
+
+.profile-meta {
+  display: flex;
+  gap: 8px;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .info-value {
-  color: #262626;
-  font-size: 14px;
-}
-
-.info-empty {
-  color: #8c8c8c;
-  font-style: italic;
-}
-
-.info-link {
-  color: #1890ff;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.info-link:hover {
-  text-decoration: underline;
+  font-size: 15px;
+  color: var(--text-primary);
 }
 
 .skills-tags {
@@ -450,33 +541,88 @@ onMounted(() => {
   gap: 8px;
 }
 
-.credit-score {
-  font-size: 14px;
-  font-weight: 500;
+.empty-text {
+  color: var(--text-disabled);
+  font-style: italic;
+}
+
+.portfolio-link {
+  color: var(--primary-color);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-all;
+}
+
+.portfolio-link:hover {
+  text-decoration: underline;
 }
 
 /* 编辑模式样式 */
-.edit-card {
-  height: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+.edit-form {
+  padding: 8px 0;
+}
+
+.edit-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
 }
 
 .avatar-upload {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 20px;
+}
+
+.upload-avatar {
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 166, 167, 0.2);
+}
+
+.upload-avatar.default {
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 .upload-btn {
-  margin-top: 8px;
+  border-radius: 6px;
+}
+
+.input-icon {
+  color: var(--text-tertiary);
 }
 
 .form-tip {
-  color: #8c8c8c;
+  color: var(--text-tertiary);
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: 6px;
+}
+
+.status-tag {
+  font-size: 14px;
+  padding: 4px 12px;
+}
+
+.credit-display {
+  max-width: 200px;
+}
+
+.credit-score-value {
+  display: flex;
+  align-items: center;
+}
+
+.credit-score-value :deep(.ant-progress) {
+  margin: 0;
+}
+
+.credit-score-value :deep(.ant-progress-text) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00a6a7;
+  margin-left: 12px;
 }
 
 /* 响应式 */
@@ -491,8 +637,19 @@ onMounted(() => {
     gap: 12px;
   }
   
-  .card-header h2 {
-    font-size: 18px;
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-info {
+    margin-left: 0;
+    margin-top: 16px;
+  }
+  
+  .avatar-upload {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

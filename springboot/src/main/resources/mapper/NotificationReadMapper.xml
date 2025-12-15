@@ -1,0 +1,24 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.NotificationReadMapper">
+
+    <insert id="insert" parameterType="com.example.entity.NotificationRead" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notification_read (notification_id, user_id, user_type, read_at)
+        VALUES (#{notificationId}, #{userId}, #{userType}, NOW())
+    </insert>
+
+    <select id="selectByNotificationAndUser" resultType="com.example.entity.NotificationRead">
+        SELECT * FROM notification_read
+        WHERE notification_id = #{notificationId}
+          AND user_id = #{userId}
+          AND user_type = #{userType}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteByNotificationId">
+        DELETE FROM notification_read WHERE notification_id = #{notificationId}
+    </delete>
+
+</mapper>
+

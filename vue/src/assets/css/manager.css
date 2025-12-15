@@ -1,97 +1,402 @@
+/* ============================
+   后台管理样式 - 仿BOSS直聘专业风格
+   ============================ */
+
 .manager-container {
-    background-color: #f8f8ff;
-    min-height: 100vh;
+  background-color: var(--bg-secondary);
+  min-height: 100vh;
 }
 
+/* 顶部导航栏 */
 .manager-header {
-    height: 60px;
-    background-color: #0066bc;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 1px 4px rgba(0, 21, 41, .08);
+  height: 60px;
+  background: linear-gradient(135deg, #1e2838 0%, #2a3647 100%);
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .manager-header-left {
-    background-color: #0066bc;
-    width: 240px;
-    height: 100%;
-    padding-left: 10px;
-    display: flex;
-    align-items: center;
+  width: 240px;
+  height: 100%;
+  padding-left: 20px;
+  display: flex;
+  align-items: center;
+  background: transparent;
 }
 
 .manager-header-left img {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    border: 2px solid #53e753;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 166, 167, 0.3);
 }
 
 .manager-header-left .title {
-    font-weight: bold;
-    font-size: 20px;
-    margin-left: 10px;
-    color: white;
+  font-weight: 600;
+  font-size: 16px;
+  margin-left: 12px;
+  color: #ffffff;
+  letter-spacing: 0.5px;
 }
 
 .manager-header-center {
-    flex: 1;
+  flex: 1;
+  padding-left: 24px;
 }
 
+.manager-header-center :deep(.ant-breadcrumb) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.manager-header-center :deep(.ant-breadcrumb a) {
+  color: rgba(255, 255, 255, 0.65) !important;
+  transition: color 0.2s ease;
+}
+
+.manager-header-center :deep(.ant-breadcrumb a:hover) {
+  color: #ffffff !important;
+}
+
+.manager-header-center :deep(.ant-breadcrumb-separator) {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.manager-header-center :deep(.ant-breadcrumb > span:last-child) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.manager-header-right {
+  padding-right: 24px;
+}
+
+/* 左侧菜单 */
 .manager-main-left {
-    width: 200px;
-    box-shadow: 0 0 6px rgba(0, 21, 41, .33);
-    min-height: calc(100vh - 60px);
+  width: 240px;
+  background: #ffffff;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  min-height: calc(100vh - 60px);
 }
 
+.manager-main-left :deep(.ant-menu) {
+  border-right: none;
+  padding: 8px 0;
+}
+
+.manager-main-left :deep(.ant-menu-item) {
+  height: 44px;
+  line-height: 44px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.manager-main-left :deep(.ant-menu-item:hover) {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.manager-main-left :deep(.ant-menu-item-selected) {
+  background: var(--primary-color) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.manager-main-left :deep(.ant-menu-item-selected::after) {
+  display: none;
+}
+
+.manager-main-left :deep(.ant-menu-submenu-title) {
+  height: 44px;
+  line-height: 44px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.manager-main-left :deep(.ant-menu-submenu-title:hover) {
+  background: var(--bg-secondary);
+  color: var(--primary-color);
+}
+
+.manager-main-left :deep(.ant-menu-submenu-open > .ant-menu-submenu-title) {
+  color: var(--primary-color);
+}
+
+.manager-main-left :deep(.ant-menu-sub.ant-menu-inline) {
+  background: transparent;
+}
+
+.manager-main-left :deep(.ant-menu-sub .ant-menu-item) {
+  padding-left: 52px !important;
+  height: 40px;
+  line-height: 40px;
+}
+
+/* 右侧内容区域 */
 .manager-main-right {
-    flex: 1;
-    width: 0;
-    background-color: #f8f8ff;
-    padding: 10px;
+  flex: 1;
+  width: 0;
+  background-color: var(--bg-secondary);
+  padding: 20px;
+  min-height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
+/* 内容卡片样式 */
+.manager-main-right :deep(.ant-card) {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: none;
+}
 
-/* Element-Plus 样式覆盖 */
-.el-menu {
+.manager-main-right :deep(.ant-card-head) {
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 24px;
+}
+
+.manager-main-right :deep(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.manager-main-right :deep(.ant-card-body) {
+  padding: 24px;
+}
+
+/* 表格样式 */
+.manager-main-right :deep(.ant-table) {
+  border-radius: 8px;
+}
+
+.manager-main-right :deep(.ant-table-thead > tr > th) {
+  background: var(--bg-secondary) !important;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 14px 16px;
+}
+
+.manager-main-right :deep(.ant-table-tbody > tr > td) {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.manager-main-right :deep(.ant-table-tbody > tr:hover > td) {
+  background: var(--primary-light) !important;
+}
+
+/* 表单样式 */
+.manager-main-right :deep(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.manager-main-right :deep(.ant-input),
+.manager-main-right :deep(.ant-select-selector),
+.manager-main-right :deep(.ant-input-number) {
+  border-radius: 6px;
+}
+
+.manager-main-right :deep(.ant-input:hover),
+.manager-main-right :deep(.ant-select:not(.ant-select-disabled):hover .ant-select-selector),
+.manager-main-right :deep(.ant-input-number:hover) {
+  border-color: var(--primary-color);
+}
+
+.manager-main-right :deep(.ant-input:focus),
+.manager-main-right :deep(.ant-input-focused),
+.manager-main-right :deep(.ant-select-focused .ant-select-selector),
+.manager-main-right :deep(.ant-input-number-focused) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 166, 167, 0.1);
+}
+
+/* 按钮样式 */
+.manager-main-right :deep(.ant-btn) {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.manager-main-right :deep(.ant-btn-primary) {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.manager-main-right :deep(.ant-btn-primary:hover) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+/* 分页样式 */
+.manager-main-right :deep(.ant-pagination-item-active) {
+  border-color: var(--primary-color);
+}
+
+.manager-main-right :deep(.ant-pagination-item-active a) {
+  color: var(--primary-color);
+}
+
+/* 标签样式 */
+.manager-main-right :deep(.ant-tag) {
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+/* 用户头像下拉菜单 */
+.manager-header-right .ant-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.manager-header-right .ant-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.manager-header-right .ant-dropdown-trigger img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+}
+
+.manager-header-right .ant-dropdown-trigger span {
+  margin-left: 10px;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* 下拉菜单样式 */
+.manager-header-right :deep(.ant-dropdown-menu) {
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+}
+
+.manager-header-right :deep(.ant-dropdown-menu-item) {
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.manager-header-right :deep(.ant-dropdown-menu-item:hover) {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+  .manager-main-left {
     width: 200px;
-    height: 100%;
-    background-color: #00162a;
-}
-:deep(.el-sub-menu__title) {
-    color: #ddd !important;
-    height: 50px;
-    line-height: 50px;
-    background-color: #011223 !important;
-}
-.el-sub-menu__title:hover {
-    color: #fff;
-}
-.el-menu-item {
-    color: #fff;
-    height: 50px;
-    line-height: 50px;
-    background-color: #000b17 !important;
-}
-.el-menu--inline .el-menu-item {
-    padding-left: 50px !important;
-}
-.el-menu .is-active {
-    color: #fff !important;
-    background-color: #1890ff !important;
-}
-.el-menu-item:not(.is-active):hover {
-    color: #fff !important;
-    background-color: #1890ff !important;
+  }
+  
+  .manager-header-left {
+    width: 200px;
+  }
+  
+  .manager-header-left .title {
+    font-size: 14px;
+  }
 }
 
-.el-tooltip__trigger {
-    outline: none;
-}
-:deep(.el-breadcrumb__inner) {
-    color: white !important;
-}
-:deep(.el-breadcrumb__separator) {
-    color: white !important;
+@media (max-width: 768px) {
+  .manager-main-left {
+    display: none;
+  }
+  
+  .manager-header-left {
+    width: auto;
+  }
+  
+  .manager-header-left .title {
+    display: none;
+  }
+  
+  .manager-main-right {
+    padding: 16px;
+  }
 }
 
+/* 统计卡片样式 */
+.stat-box {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-box .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+
+.stat-box .stat-icon.primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #00c4c4 100%);
+}
+
+.stat-box .stat-icon.blue {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+}
+
+.stat-box .stat-icon.green {
+  background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+}
+
+.stat-box .stat-icon.orange {
+  background: linear-gradient(135deg, #fa8c16 0%, #ffa940 100%);
+}
+
+.stat-box .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-box .stat-label {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+/* 空状态样式 */
+.manager-main-right :deep(.ant-empty) {
+  padding: 48px 0;
+}
+
+.manager-main-right :deep(.ant-empty-description) {
+  color: var(--text-tertiary);
+}
+
+/* 加载状态 */
+.manager-main-right :deep(.ant-spin-dot-item) {
+  background-color: var(--primary-color);
+}

@@ -25,6 +25,8 @@ public class EnterpriseService {
     @Resource
     private com.example.service.MessageService messageService;
     @Resource
+    private NotificationService notificationService;
+    @Resource
     private com.example.mapper.AdminMapper adminMapper;
 
     /**
@@ -77,8 +79,9 @@ public class EnterpriseService {
             if (!wasVerified && willBeVerified && "ADMIN".equals(currentUser.getRole())) {
                 // 管理员认证了企业，发送通知给企业
                 String enterpriseName = dbEnterprise.getEmployName() != null ? dbEnterprise.getEmployName() : "未知企业";
-                String notificationContent = String.format("恭喜！您的企业《%s》已通过认证审核，现在可以发布项目了。", enterpriseName);
-                messageService.sendNotification(null, dbEnterprise.getEmployId(), "ENTERPRISE", notificationContent);
+                notificationService.sendIndividualNotification("CERTIFICATION", dbEnterprise.getEmployId(), "ENTERPRISE",
+                        "企业认证通过", String.format("恭喜！您的企业《%s》已通过认证审核，现在可以发布项目了。", enterpriseName),
+                        null, null, null);
             }
         } else {
             // 如果没有提供ID，使用当前登录用户的企业ID（企业用户更新自己的信息）
@@ -119,7 +122,8 @@ public class EnterpriseService {
                     for (com.example.entity.Admin admin : admins) {
                         // 企业资料修改不关联项目，projectId设为null
                         // 管理员通知使用ADMIN作为recipientType
-                        messageService.sendNotification(null, admin.getId(), "ADMIN", notificationContent);
+                        notificationService.sendIndividualNotification("CERTIFICATION", admin.getId(), "ADMIN",
+                                "企业资料修改", notificationContent, null, null, null);
                     }
                 }
             }

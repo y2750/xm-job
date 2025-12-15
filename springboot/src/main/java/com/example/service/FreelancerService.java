@@ -29,6 +29,8 @@ public class FreelancerService {
     private UserMapper userMapper;
     @Resource
     private com.example.service.MessageService messageService;
+    @Resource
+    private NotificationService notificationService;
 
     /**
      * 新增自由职业者信息
@@ -81,8 +83,9 @@ public class FreelancerService {
             if (!wasVerified && willBeVerified && "ADMIN".equals(currentUser.getRole())) {
                 // 管理员认证了自由职业者，发送通知给自由职业者
                 String freelancerName = dbFreelancer.getUserName() != null ? dbFreelancer.getUserName() : "未知用户";
-                String notificationContent = String.format("恭喜！您的账号《%s》已通过认证审核，现在可以提交稿件了。", freelancerName);
-                messageService.sendNotification(null, dbFreelancer.getUserId(), "FREELANCER", notificationContent);
+                notificationService.sendIndividualNotification("CERTIFICATION", dbFreelancer.getUserId(), "FREELANCER",
+                        "账号认证通过", String.format("恭喜！您的账号《%s》已通过认证审核，现在可以提交稿件了。", freelancerName),
+                        null, null, null);
             }
         } else {
             // 如果没有提供ID，使用当前登录用户的ID（自由职业者更新自己的信息）

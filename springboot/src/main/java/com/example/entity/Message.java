@@ -20,8 +20,13 @@ public class Message {
     private String senderName;
     private String senderAvatar;
     private String recipientName;
+    private String recipientAvatar;
     private String projectTitle;
-    
+    private String submissionTitle;
+    private Integer freelancerId;
+    private String submissionStatus; // SUBMITTED/INTERESTED/CONFIRMED/REJECTED
+    private Integer unreadCount; // 未读消息数
+
     // 查询条件字段（不映射到数据库）
     private Boolean excludeSubmissionId;
 
@@ -136,5 +141,44 @@ public class Message {
     public void setExcludeSubmissionId(Boolean excludeSubmissionId) {
         this.excludeSubmissionId = excludeSubmissionId;
     }
-}
 
+    public String getRecipientAvatar() {
+        return recipientAvatar;
+    }
+
+    public void setRecipientAvatar(String recipientAvatar) {
+        this.recipientAvatar = recipientAvatar;
+    }
+
+    public String getSubmissionTitle() {
+        return submissionTitle;
+    }
+
+    public void setSubmissionTitle(String submissionTitle) {
+        this.submissionTitle = submissionTitle;
+    }
+
+    public Integer getFreelancerId() {
+        return freelancerId;
+    }
+
+    public void setFreelancerId(Integer freelancerId) {
+        this.freelancerId = freelancerId;
+    }
+
+    public String getSubmissionStatus() {
+        return submissionStatus;
+    }
+
+    public void setSubmissionStatus(String submissionStatus) {
+        this.submissionStatus = submissionStatus;
+    }
+
+    public Integer getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(Integer unreadCount) {
+        this.unreadCount = unreadCount;
+    }
+}

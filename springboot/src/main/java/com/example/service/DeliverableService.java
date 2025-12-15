@@ -44,6 +44,8 @@ public class DeliverableService {
     private EnterpriseMapper enterpriseMapper;
     @Resource
     private MessageService messageService;
+    @Resource
+    private NotificationService notificationService;
 
     /**
      * 提交成品
@@ -109,8 +111,9 @@ public class DeliverableService {
                 // 通知企业
                 Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
                 if (enterprise != null) {
-                    messageService.sendNotification(project.getId(), enterprise.getEmployId(), "ENTERPRISE",
-                            "您的项目《" + project.getTitle() + "》收到了新的成品提交（第" + deliverable.getSubmitCount() + "次），请及时验收。");
+                    notificationService.sendIndividualNotification("DELIVERABLE", enterprise.getEmployId(), "ENTERPRISE",
+                            "收到新成品提交", "您的项目《" + project.getTitle() + "》收到了新的成品提交（第" + deliverable.getSubmitCount() + "次），请及时验收。",
+                            project.getId(), deliverable.getSubmissionId(), deliverable.getId());
                 }
 
                 return deliverable;
@@ -126,8 +129,9 @@ public class DeliverableService {
         // 通知企业
         Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
         if (enterprise != null) {
-            messageService.sendNotification(project.getId(), enterprise.getEmployId(), "ENTERPRISE",
-                    "您的项目《" + project.getTitle() + "》收到了新的成品提交，请及时验收。");
+            notificationService.sendIndividualNotification("DELIVERABLE", enterprise.getEmployId(), "ENTERPRISE",
+                    "收到新成品提交", "您的项目《" + project.getTitle() + "》收到了新的成品提交，请及时验收。",
+                    project.getId(), deliverable.getSubmissionId(), deliverable.getId());
         }
 
         return deliverable;
@@ -184,8 +188,9 @@ public class DeliverableService {
                 projectMapper.updateById(project);
                 // 通知接单者
                 if (freelancer.getUserId() != null) {
-                    messageService.sendNotification(project.getId(), freelancer.getUserId(), "FREELANCER",
-                            "恭喜！您的项目《" + project.getTitle() + "》成品验收通过，项目已完成，已增加信誉分并支付项目款项。");
+                    notificationService.sendIndividualNotification("PROJECT_STATUS_CHANGE", freelancer.getUserId(), "FREELANCER",
+                            "项目验收通过", "恭喜！您的项目《" + project.getTitle() + "》成品验收通过，项目已完成，已增加信誉分并支付项目款项。",
+                            project.getId(), deliverable.getSubmissionId(), deliverable.getId());
                 }
             } else if ("REJECTED".equals(status)) {
                 // 验收不通过
@@ -221,16 +226,18 @@ public class DeliverableService {
                         } else {
                             reason = "已超过截止时间";
                         }
-                        messageService.sendNotification(project.getId(), freelancer.getUserId(), "FREELANCER",
-                                "您的项目《" + project.getTitle() + "》成品验收失败（" + reason + "），已扣除信誉分和保证金并赔付给企业。");
+                        notificationService.sendIndividualNotification("VIOLATION", freelancer.getUserId(), "FREELANCER",
+                                "项目验收失败", "您的项目《" + project.getTitle() + "》成品验收失败（" + reason + "），已扣除信誉分和保证金并赔付给企业。",
+                                project.getId(), deliverable.getSubmissionId(), deliverable.getId());
                     }
                 } else {
                     // 验收不通过但还有机会重新提交，不扣除信誉分和保证金
                     // 通知自由职业者
                     if (freelancer.getUserId() != null) {
-                        messageService.sendNotification(project.getId(), freelancer.getUserId(), "FREELANCER",
-                                "您的项目《" + project.getTitle() + "》成品验收不通过（第" + submitCount + "次），还有" + (3 - submitCount)
-                                        + "次提交机会，请及时修改并重新提交。");
+                        notificationService.sendIndividualNotification("DELIVERABLE", freelancer.getUserId(), "FREELANCER",
+                                "成品验收不通过", "您的项目《" + project.getTitle() + "》成品验收不通过（第" + submitCount + "次），还有" + (3 - submitCount)
+                                        + "次提交机会，请及时修改并重新提交。",
+                                project.getId(), deliverable.getSubmissionId(), deliverable.getId());
                     }
                 }
             }

@@ -77,6 +77,15 @@ public class SubmissionController {
     }
 
     /**
+     * 根据项目ID查询当前用户的稿件
+     */
+    @GetMapping("/project/{projectId}/my")
+    public Result selectMySubmissionByProjectId(@PathVariable Integer projectId) {
+        Submission submission = submissionService.selectMySubmissionByProjectId(projectId);
+        return Result.success(submission);
+    }
+
+    /**
      * 更新稿件状态
      */
     @PutMapping("/{id}/status")

@@ -456,6 +456,7 @@ const handleReview = (deliverableId, status) => {
 
 const handleDownload = async (attachment) => {
   try {
+    const fileName = attachment.fileName || 'download'
     // 从 fileUrl 中提取附件ID，或者直接使用附件ID
     // fileUrl 格式：http://localhost:9090/api/attachments/download/{id}
     let url = attachment.fileUrl
@@ -475,19 +476,17 @@ const handleDownload = async (attachment) => {
       }
     }
     
-    // 使用 axios 下载文件（会自动添加 token）
-    const blob = await request.get(url, {
+    // 使用 axios 下载文件（会自动添加 token，后端会返回文件流）
+    const res = await request.get(url, {
       responseType: 'blob'
     })
     
     // 检查是否是错误响应（JSON格式的错误信息）
-    // 如果 blob 的 size 很小（比如小于 1KB），可能是 JSON 错误信息
-    if (blob.size < 1024) {
-      const text = await blob.text()
+    if (res instanceof Blob && res.size < 1024) {
+      const text = await res.text()
       try {
         const errorData = JSON.parse(text)
-        if (errorData.code) {
-          // 这是错误响应
+        if (errorData.code && errorData.code !== '200') {
           message.error(errorData.msg || '下载失败')
           return
         }
@@ -496,15 +495,40 @@ const handleDownload = async (attachment) => {
       }
     }
     
-    // 创建下载链接
+    if (!(res instanceof Blob)) {
+      message.error('下载失败：无效的响应')
+      return
+    }
+    
+    // 创建下载链接，强制下载到默认路径
+    const blob = res  // 使用 res 作为 blob
+    const safeFileName = (attachment.fileName || 'download').replace(/[<>:"/\\|?*]/g, '_')
     const downloadUrl = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = attachment.fileName || 'download'
+    link.download = safeFileName  // 保持原始文件名（清理特殊字符）
+    link.style.display = 'none'
     document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(downloadUrl)
+    
+    try {
+      link.click()
+    } catch (clickError) {
+      console.error('点击失败:', clickError)
+      // 如果点击失败，尝试使用 window.open
+      window.open(downloadUrl, '_blank')
+    }
+    
+    // 延迟删除，确保下载开始
+    setTimeout(() => {
+      try {
+        if (link.parentNode) {
+          document.body.removeChild(link)
+        }
+        window.URL.revokeObjectURL(downloadUrl)
+      } catch (e) {
+        console.warn('清理链接时出错:', e)
+      }
+    }, 500)
     
     message.success('下载成功')
   } catch (error) {

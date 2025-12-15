@@ -16,6 +16,7 @@ public class GlobalExceptionHandler {
     @ResponseBody // 返回json串
     public Result error(Exception e) {
         log.error("异常信息：", e);
+        // 注意：如果响应已经提交（如文件下载），不应该再修改响应
         return Result.error();
     }
 
