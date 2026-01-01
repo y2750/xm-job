@@ -129,7 +129,108 @@
                     />
                   </span>
                 </div>
+                <div class="info-item" v-if="form.experienceLevel">
+                  <span class="info-label">
+                    <TrophyOutlined />
+                    经验等级
+                  </span>
+                  <span class="info-value">
+                    <a-tag :color="getExperienceLevelColor(form.experienceLevel)">
+                      {{ getExperienceLevelText(form.experienceLevel) }}
+                    </a-tag>
+                  </span>
+                </div>
               </div>
+            </div>
+          </a-col>
+        </a-row>
+
+        <!-- 证书管理 -->
+        <a-row :gutter="[24, 24]" style="margin-top: 24px">
+          <a-col :xs="24">
+            <div class="info-section">
+              <div class="section-header">
+                <FileTextOutlined />
+                <span>证书管理</span>
+                <a-button type="link" @click="showCertificateModal = true" style="margin-left: auto">
+                  <PlusOutlined /> 添加证书
+                </a-button>
+              </div>
+              <div v-if="certificates.length > 0" class="certificate-list">
+                <a-list :data-source="certificates" :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 3, xxl: 3 }">
+                  <template #renderItem="{ item }">
+                    <a-list-item>
+                      <a-card hoverable>
+                        <template #cover v-if="item.certificateUrl">
+                          <img :src="item.certificateUrl" :alt="item.certificateName" style="height: 150px; object-fit: cover" />
+                        </template>
+                        <a-card-meta>
+                          <template #title>
+                            <div style="display: flex; justify-content: space-between; align-items: center">
+                              <span>{{ item.certificateName }}</span>
+                              <a-tag v-if="item.verified" color="green">已验证</a-tag>
+                              <a-tag v-else color="orange">未验证</a-tag>
+                            </div>
+                          </template>
+                          <template #description>
+                            <div style="font-size: 12px; color: #999">
+                              <div>类型：{{ getCertificateTypeText(item.certificateType) }}</div>
+                              <div v-if="item.issuingOrganization">机构：{{ item.issuingOrganization }}</div>
+                              <div v-if="item.issueDate">颁发日期：{{ item.issueDate }}</div>
+                            </div>
+                          </template>
+                        </a-card-meta>
+                        <template #actions>
+                          <a-button type="link" danger @click="handleDeleteCertificate(item.id)">删除</a-button>
+                        </template>
+                      </a-card>
+                    </a-list-item>
+                  </template>
+                </a-list>
+              </div>
+              <a-empty v-else description="暂无证书，点击上方按钮添加" />
+            </div>
+          </a-col>
+        </a-row>
+
+        <!-- 历史战绩 -->
+        <a-row :gutter="[24, 24]" style="margin-top: 24px">
+          <a-col :xs="24">
+            <div class="info-section">
+              <div class="section-header">
+                <TrophyOutlined />
+                <span>历史战绩</span>
+              </div>
+              <div v-if="projectHistory.length > 0" class="history-list">
+                <a-timeline>
+                  <a-timeline-item v-for="item in projectHistory" :key="item.id">
+                    <div class="history-item">
+                      <div class="history-header">
+                        <h4>{{ item.projectTitle }}</h4>
+                        <a-space>
+                          <a-tag :color="item.status === 'COMPLETED' ? 'green' : 'red'">
+                            {{ item.status === 'COMPLETED' ? '已完成' : '已取消' }}
+                          </a-tag>
+                          <a-button type="link" size="small" @click="handleViewProjectDetail(item.projectId)">查看详情</a-button>
+                        </a-space>
+                      </div>
+                      <div class="history-content">
+                        <div><strong>成交价格：</strong>¥{{ item.projectBudget || 0 }}</div>
+                        <div v-if="item.completionDate"><strong>完成时间：</strong>{{ item.completionDate }}</div>
+                        <div v-if="item.enterpriseRating">
+                          <strong>企业评分：</strong>
+                          <a-rate :value="item.enterpriseRating" disabled allow-half />
+                          ({{ item.enterpriseRating }}分)
+                        </div>
+                        <div v-if="item.enterpriseComment" style="margin-top: 8px; color: #666">
+                          <strong>评价：</strong>{{ item.enterpriseComment }}
+                        </div>
+                      </div>
+                    </div>
+                  </a-timeline-item>
+                </a-timeline>
+              </div>
+              <a-empty v-else description="暂无历史战绩" />
             </div>
           </a-col>
         </a-row>
@@ -243,6 +344,58 @@
         </a-row>
       </a-form>
     </a-card>
+
+    <!-- 添加证书弹窗 -->
+    <a-modal
+      v-model:open="showCertificateModal"
+      title="添加证书"
+      @ok="handleAddCertificate"
+      @cancel="handleCancelCertificate"
+    >
+      <a-form :model="certificateForm" layout="vertical">
+        <a-form-item label="证书类型" required>
+          <a-select v-model:value="certificateForm.certificateType">
+            <a-select-option value="DEGREE">学历证书</a-select-option>
+            <a-select-option value="PROFESSIONAL">职业证书</a-select-option>
+            <a-select-option value="AWARD">获奖证书</a-select-option>
+            <a-select-option value="OTHER">其他</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="证书名称" required>
+          <a-input v-model:value="certificateForm.certificateName" placeholder="请输入证书名称" />
+        </a-form-item>
+        <a-form-item label="颁发机构">
+          <a-input v-model:value="certificateForm.issuingOrganization" placeholder="请输入颁发机构" />
+        </a-form-item>
+        <a-form-item label="颁发日期">
+          <a-date-picker v-model:value="certificateForm.issueDate" style="width: 100%" />
+        </a-form-item>
+        <a-form-item label="到期日期">
+          <a-date-picker v-model:value="certificateForm.expiryDate" style="width: 100%" />
+        </a-form-item>
+        <a-form-item label="证书文件" required>
+          <a-upload
+            v-model:file-list="certificateFileList"
+            :before-upload="beforeCertificateUpload"
+            :custom-request="handleCertificateUpload"
+            :max-count="1"
+            accept="image/*"
+            list-type="picture"
+            :show-upload-list="true"
+          >
+            <a-button :loading="certificateUploading">
+              <UploadOutlined /> 上传证书
+            </a-button>
+            <template #tip>
+              <div style="color: #999; font-size: 12px; margin-top: 4px">仅支持图片格式（jpg、png、gif等），选择文件后将自动上传</div>
+            </template>
+          </a-upload>
+          <div v-if="certificateForm.certificateUrl" style="margin-top: 8px; color: #52c41a; font-size: 12px">
+            ✓ 证书已上传
+          </div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -263,9 +416,11 @@ import {
   TagsOutlined,
   FolderOutlined,
   TrophyOutlined,
-  ExportOutlined
+  ExportOutlined,
+  PlusOutlined
 } from '@ant-design/icons-vue'
 import request from '@/utils/request'
+import dayjs from 'dayjs'
 
 const formRef = ref()
 const submitting = ref(false)
@@ -281,8 +436,23 @@ const form = reactive({
   portfolioUrl: '',
   portfolioCount: 0,
   verified: false,
-  creditScore: 100
+  creditScore: 100,
+  experienceLevel: ''
 })
+
+const certificates = ref([])
+const projectHistory = ref([])
+const showCertificateModal = ref(false)
+const certificateForm = reactive({
+  certificateType: 'DEGREE',
+  certificateName: '',
+  issuingOrganization: '',
+  issueDate: null,
+  expiryDate: null,
+  certificateUrl: ''
+})
+const certificateFileList = ref([])
+const certificateUploading = ref(false)
 
 const originalForm = reactive({})
 
@@ -409,8 +579,263 @@ const handleSubmit = async () => {
   }
 }
 
+const getExperienceLevelColor = (level) => {
+  const colors = {
+    'NEWBIE': 'orange',
+    'JUNIOR': 'blue',
+    'SENIOR': 'purple',
+    'EXPERT': 'red'
+  }
+  return colors[level] || 'default'
+}
+
+const getExperienceLevelText = (level) => {
+  const texts = {
+    'NEWBIE': '新手',
+    'JUNIOR': '初级',
+    'SENIOR': '高级',
+    'EXPERT': '专家'
+  }
+  return texts[level] || level
+}
+
+const getCertificateTypeText = (type) => {
+  const texts = {
+    'DEGREE': '学历证书',
+    'PROFESSIONAL': '职业证书',
+    'AWARD': '获奖证书',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
+}
+
+const loadCertificates = async () => {
+  try {
+    const res = await request.get('/api/certificates/my')
+    if (res.code === '200') {
+      certificates.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载证书失败:', error)
+    certificates.value = []
+  }
+}
+
+const loadProjectHistory = async () => {
+  try {
+    const res = await request.get('/api/project-history/my')
+    if (res.code === '200') {
+      projectHistory.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载历史战绩失败:', error)
+    projectHistory.value = []
+  }
+}
+
+const handleViewProjectDetail = (projectId) => {
+  if (projectId) {
+    router.push(`/front/projects/${projectId}`)
+  }
+}
+
+const handleDeleteCertificate = async (id) => {
+  try {
+    const res = await request.delete(`/api/certificates/${id}`)
+    if (res.code === '200') {
+      message.success('删除成功')
+      loadCertificates()
+    } else {
+      message.error(res.msg || '删除失败')
+    }
+  } catch (error) {
+    console.error('删除证书失败:', error)
+    message.error('删除失败，请重试')
+  }
+}
+
+const beforeCertificateUpload = (file) => {
+  console.log('beforeCertificateUpload 被调用:', file.name, file.type)
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    message.error('只能上传图片文件！')
+    return false
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    message.error('图片大小不能超过 5MB!')
+    return false
+  }
+  // 返回true允许文件添加到列表，然后custom-request会立即执行上传
+  console.log('beforeCertificateUpload 返回 true，文件将被添加到列表')
+  return true
+}
+
+const handleCertificateUpload = async ({ file, onSuccess, onError }) => {
+  console.log('handleCertificateUpload 被调用，开始上传:', file.name, file.type, file.size)
+  
+  // 再次验证文件类型
+  if (!file.type || !file.type.startsWith('image/')) {
+    message.error('只能上传图片文件！')
+    onError()
+    // 从文件列表中移除
+    const index = certificateFileList.value.findIndex(item => item.uid === file.uid)
+    if (index > -1) {
+      certificateFileList.value.splice(index, 1)
+    }
+    return
+  }
+  
+  certificateUploading.value = true
+  
+  // 更新文件状态为上传中（文件已通过beforeUpload添加到列表）
+  const fileIndex = certificateFileList.value.findIndex(item => item.uid === file.uid)
+  console.log('文件索引:', fileIndex, '文件列表:', certificateFileList.value)
+  if (fileIndex > -1) {
+    certificateFileList.value[fileIndex].status = 'uploading'
+  } else {
+    // 如果文件不在列表中，手动添加
+    console.log('文件不在列表中，手动添加')
+    certificateFileList.value = [{
+      uid: file.uid || Date.now(),
+      name: file.name,
+      status: 'uploading',
+      url: undefined
+    }]
+  }
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    console.log('开始上传证书文件到COS:', file.name, file.type, file.size)
+    
+    // 不要手动设置Content-Type，让request拦截器自动处理FormData
+    const res = await request.post('/files/upload', formData)
+    
+    console.log('证书上传响应:', res)
+    
+    if (res.code === '200' && res.data) {
+      const uploadedUrl = res.data
+      // 确保URL被正确设置到reactive对象
+      certificateForm.certificateUrl = uploadedUrl
+      
+      console.log('证书上传成功，URL已设置:', uploadedUrl)
+      console.log('certificateForm对象:', JSON.parse(JSON.stringify(certificateForm)))
+      console.log('certificateForm.certificateUrl:', certificateForm.certificateUrl)
+      
+      // 更新文件列表显示
+      if (fileIndex > -1) {
+        certificateFileList.value[fileIndex].status = 'done'
+        certificateFileList.value[fileIndex].url = uploadedUrl
+      }
+      
+      certificateUploading.value = false
+      onSuccess()
+      message.success('证书上传成功')
+    } else {
+      certificateUploading.value = false
+      // 更新文件状态为错误
+      if (fileIndex > -1) {
+        certificateFileList.value[fileIndex].status = 'error'
+      }
+      onError()
+      message.error(res.msg || '上传失败')
+    }
+  } catch (error) {
+    console.error('证书上传失败:', error)
+    certificateUploading.value = false
+    // 更新文件状态为错误
+    const errorFileIndex = certificateFileList.value.findIndex(item => item.uid === file.uid)
+    if (errorFileIndex > -1) {
+      certificateFileList.value[errorFileIndex].status = 'error'
+    }
+    onError()
+    message.error('上传失败，请重试: ' + (error.message || '未知错误'))
+  }
+}
+
+const handleCancelCertificate = () => {
+  // 重置表单
+  Object.assign(certificateForm, {
+    certificateType: 'DEGREE',
+    certificateName: '',
+    issuingOrganization: '',
+    issueDate: null,
+    expiryDate: null,
+    certificateUrl: ''
+  })
+  certificateFileList.value = []
+  certificateUploading.value = false
+  showCertificateModal.value = false
+}
+
+const handleAddCertificate = async () => {
+  if (!certificateForm.certificateName || !certificateForm.certificateName.trim()) {
+    message.error('请输入证书名称')
+    return
+  }
+  
+  // 检查是否正在上传
+  if (certificateUploading.value) {
+    message.warning('证书正在上传中，请稍候...')
+    return
+  }
+  
+  // 验证证书文件URL
+  console.log('检查证书URL - certificateForm:', JSON.parse(JSON.stringify(certificateForm)))
+  console.log('检查证书URL - certificateForm.certificateUrl:', certificateForm.certificateUrl)
+  console.log('检查证书URL - certificateFileList:', certificateFileList.value)
+  
+  if (!certificateForm.certificateUrl || !certificateForm.certificateUrl.trim()) {
+    message.error('请上传证书文件')
+    return
+  }
+  // 验证证书URL是否为图片
+  const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp)(\?|$)/i
+  if (!imageExtensions.test(certificateForm.certificateUrl)) {
+    message.error('证书文件必须是图片格式')
+    return
+  }
+  
+  console.log('提交证书数据:', {
+    ...certificateForm,
+    certificateUrl: certificateForm.certificateUrl
+  })
+  
+  try {
+    const submitData = {
+      ...certificateForm,
+      issueDate: certificateForm.issueDate ? dayjs(certificateForm.issueDate).format('YYYY-MM-DD') : null,
+      expiryDate: certificateForm.expiryDate ? dayjs(certificateForm.expiryDate).format('YYYY-MM-DD') : null
+    }
+    const res = await request.post('/api/certificates', submitData)
+    if (res.code === '200') {
+      message.success('添加证书成功')
+      showCertificateModal.value = false
+      Object.assign(certificateForm, {
+        certificateType: 'DEGREE',
+        certificateName: '',
+        issuingOrganization: '',
+        issueDate: null,
+        expiryDate: null,
+        certificateUrl: ''
+      })
+      certificateFileList.value = []
+      loadCertificates()
+    } else {
+      message.error(res.msg || '添加失败')
+    }
+  } catch (error) {
+    console.error('添加证书失败:', error)
+    message.error('添加失败，请重试')
+  }
+}
+
 onMounted(() => {
   loadProfile()
+  loadCertificates()
+  loadProjectHistory()
 })
 </script>
 

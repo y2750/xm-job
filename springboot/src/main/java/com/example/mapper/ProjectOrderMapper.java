@@ -33,7 +33,12 @@ public interface ProjectOrderMapper {
     List<ProjectOrder> selectByProjectId(Integer projectId);
     
     @Select("select project_order.*, " +
-            "user.name as freelancerName, user.avatar as freelancerAvatar " +
+            "user.name as freelancerName, user.avatar as freelancerAvatar, " +
+            "freelancer.experience_level as freelancerExperienceLevel, " +
+            "freelancer.completed_projects as freelancerCompletedProjects, " +
+            "freelancer.rating as freelancerRating, " +
+            "freelancer.credit_score as freelancerCreditScore, " +
+            "freelancer.skills as freelancerSkills " +
             "from project_order " +
             "left join freelancer on project_order.freelancer_id = freelancer.id " +
             "left join user on freelancer.user_id = user.id " +

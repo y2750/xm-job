@@ -7,22 +7,7 @@
     <!-- 筛选条件 -->
     <a-form :model="searchForm" layout="inline" style="margin-bottom: 20px">
       <a-form-item label="通知内容">
-        <a-input v-model:value="searchForm.content" placeholder="请输入通知内容关键词" allow-clear style="width: 200px" />
-      </a-form-item>
-      <a-form-item label="关联项目">
-        <a-input v-model:value="searchForm.projectTitle" placeholder="请输入项目标题" allow-clear style="width: 200px" />
-      </a-form-item>
-      <a-form-item label="通知类型">
-        <a-select v-model:value="searchForm.notificationType" placeholder="请选择" allow-clear style="width: 150px">
-          <a-select-option value="system">系统通知</a-select-option>
-          <a-select-option value="chat">聊天消息</a-select-option>
-        </a-select>
-      </a-form-item>
-      <a-form-item label="发送者类型">
-        <a-select v-model:value="searchForm.senderType" placeholder="请选择" allow-clear style="width: 150px">
-          <a-select-option value="ENTERPRISE">企业</a-select-option>
-          <a-select-option value="FREELANCER">自由职业者</a-select-option>
-        </a-select>
+        <a-input v-model:value="searchForm.content" placeholder="请输入通知标题或内容关键词" allow-clear style="width: 200px" />
       </a-form-item>
       <a-form-item label="是否已读">
         <a-select v-model:value="searchForm.isRead" placeholder="请选择" allow-clear style="width: 120px">
@@ -46,20 +31,21 @@
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'title'">
-          <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap" :title="record.content">
-            {{ record.content }}
+          <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap" :title="record.title">
+            <strong>{{ record.title }}</strong>
+            <div style="font-size: 12px; color: #666; margin-top: 4px">{{ record.content }}</div>
           </div>
+        </template>
+        <template v-if="column.key === 'type'">
+          <a-tag :color="getTypeColor(record.type)">
+            {{ getTypeText(record.type) }}
+          </a-tag>
         </template>
         <template v-if="column.key === 'projectTitle'">
           <a v-if="record.projectId && record.projectTitle" @click="handleViewProject(record.projectId)">
             {{ record.projectTitle }}
           </a>
           <span v-else style="color: #999">无</span>
-        </template>
-        <template v-if="column.key === 'senderType'">
-          <a-tag :color="getSenderTypeColor(record)">
-            {{ getSenderTypeText(record) }}
-          </a-tag>
         </template>
         <template v-if="column.key === 'isRead'">
           <a-tag :color="record.isRead ? 'default' : 'red'">
@@ -68,6 +54,7 @@
         </template>
         <template v-if="column.key === 'action'">
           <a-button type="link" @click="handleViewDetail(record)">查看详情</a-button>
+          <a-button v-if="record.type === 'CERTIFICATE' && record.deliverableId" type="link" @click="handleViewCertificate(record.deliverableId)">查看证书</a-button>
           <a-button type="link" danger @click="handleDelete(record.id)">删除</a-button>
         </template>
       </template>
@@ -81,19 +68,22 @@
       :width="600"
     >
       <a-descriptions :column="1" bordered v-if="currentMessage">
+        <a-descriptions-item label="通知标题">
+          <strong>{{ currentMessage.title }}</strong>
+        </a-descriptions-item>
         <a-descriptions-item label="通知内容">
           <div style="white-space: pre-wrap">{{ currentMessage.content }}</div>
+        </a-descriptions-item>
+        <a-descriptions-item label="通知类型">
+          <a-tag :color="getTypeColor(currentMessage.type)">
+            {{ getTypeText(currentMessage.type) }}
+          </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="关联项目">
           <a v-if="currentMessage.projectId && currentMessage.projectTitle" @click="handleViewProject(currentMessage.projectId)">
             {{ currentMessage.projectTitle }}
           </a>
           <span v-else style="color: #999">无</span>
-        </a-descriptions-item>
-        <a-descriptions-item label="发送者类型">
-          <a-tag :color="getSenderTypeColor(currentMessage)">
-            {{ getSenderTypeText(currentMessage) }}
-          </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="是否已读">
           <a-tag :color="currentMessage.isRead ? 'default' : 'red'">
@@ -121,9 +111,6 @@ const currentMessage = ref(null)
 
 const searchForm = reactive({
   content: '',
-  projectTitle: '',
-  notificationType: null,
-  senderType: null,
   isRead: null
 })
 
@@ -140,12 +127,12 @@ const pagination = reactive({
 })
 
 const columns = [
-  { title: '通知内容', key: 'title', ellipsis: true },
-  { title: '关联项目', dataIndex: 'projectTitle', key: 'projectTitle', ellipsis: true },
-  { title: '发送者类型', key: 'senderType', width: 120 },
+  { title: '通知标题', key: 'title', ellipsis: true, width: 300 },
+  { title: '通知类型', key: 'type', width: 120 },
+  { title: '关联项目', key: 'projectTitle', ellipsis: true, width: 150 },
   { title: '是否已读', key: 'isRead', width: 100 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
-  { title: '操作', key: 'action', width: 150, fixed: 'right' }
+  { title: '操作', key: 'action', width: 200, fixed: 'right' }
 ]
 
 const formatDate = (dateStr) => {
@@ -153,66 +140,87 @@ const formatDate = (dateStr) => {
   return dateStr.replace('T', ' ').substring(0, 19)
 }
 
-const getSenderTypeText = (record) => {
-  // 如果senderId为0或null，表示是系统通知
-  if (record.senderId === 0 || record.senderId === null) {
-    return '系统通知'
-  }
+const getTypeText = (type) => {
   const map = {
-    'ENTERPRISE': '企业',
-    'FREELANCER': '自由职业者'
+    'CERTIFICATE': '证书通知',
+    'PROJECT_STATUS_CHANGE': '项目通知',
+    'CERTIFICATION': '认证通知'
   }
-  return map[record.senderType] || record.senderType || '未知'
+  return map[type] || type || '未知'
 }
 
-const getSenderTypeColor = (record) => {
-  // 如果senderId为0或null，表示是系统通知
-  if (record.senderId === 0 || record.senderId === null) {
-    return 'blue'
-  }
+const getTypeColor = (type) => {
   const map = {
-    'ENTERPRISE': 'green',
-    'FREELANCER': 'orange'
+    'CERTIFICATE': 'orange',
+    'PROJECT_STATUS_CHANGE': 'blue',
+    'CERTIFICATION': 'green'
   }
-  return map[record.senderType] || 'default'
+  return map[type] || 'default'
+}
+
+const handleViewCertificate = async (certificateId) => {
+  // 通过证书ID获取证书信息，然后跳转到对应的自由职业者详情
+  try {
+    const res = await request.get(`/api/certificates/admin/${certificateId}`)
+    if (res.code === '200' && res.data && res.data.freelancerId) {
+      // 跳转到自由职业者管理页面并打开详情
+      router.push('/manager/freelancers')
+      // 使用 nextTick 确保路由跳转完成后再打开详情
+      setTimeout(() => {
+        // 触发查看自由职业者详情的事件
+        window.dispatchEvent(new CustomEvent('viewFreelancerDetail', { detail: { freelancerId: res.data.freelancerId } }))
+      }, 300)
+    } else {
+      message.error('获取证书信息失败')
+    }
+  } catch (error) {
+    console.error('获取证书信息失败:', error)
+    message.error('获取证书信息失败')
+  }
 }
 
 const loadMessages = async () => {
   loading.value = true
   try {
-    const params = {
-      pageNum: pagination.current,
-      pageSize: pagination.pageSize
-    }
-    
-    // 构建查询条件
-    if (searchForm.content) {
-      params.content = searchForm.content
-    }
-    if (searchForm.projectTitle) {
-      params.projectTitle = searchForm.projectTitle
-    }
-    if (searchForm.senderType !== null && searchForm.senderType !== undefined && searchForm.senderType !== '') {
-      params.senderType = searchForm.senderType
-    }
-    if (searchForm.isRead !== null && searchForm.isRead !== undefined && searchForm.isRead !== '') {
-      params.isRead = searchForm.isRead
-    }
-    
-    const res = await request.get('/api/messages', { params })
+    // 管理员使用通知接口，只查看管理员相关的通知
+    const res = await request.get('/api/notifications')
     if (res.code === '200' && res.data) {
-      let list = res.data.list || []
+      let list = res.data || []
       
-      // 根据通知类型过滤
-      if (searchForm.notificationType === 'system') {
-        // 只显示系统通知（senderId为0或null，且没有submissionId）
-        list = list.filter(msg => (msg.senderId === 0 || msg.senderId === null) && !msg.submissionId)
-      } else if (searchForm.notificationType === 'chat') {
-        // 只显示聊天消息（有submissionId的消息）
-        list = list.filter(msg => msg.submissionId != null)
-      } else {
-        // 默认只显示系统通知（过滤掉聊天消息）
-        list = list.filter(msg => !msg.submissionId)
+      // 管理员只应该看到以下类型的通知：
+      // 1. CERTIFICATE（证书上传通知）
+      // 2. PROJECT_STATUS_CHANGE（项目状态变更，如新项目发布需要审核）
+      // 3. CERTIFICATION（企业认证相关通知）
+      // 过滤掉其他类型的通知
+      list = list.filter(notif => {
+        const allowedTypes = ['CERTIFICATE', 'PROJECT_STATUS_CHANGE', 'CERTIFICATION']
+        return allowedTypes.includes(notif.type)
+      })
+      
+      // 根据搜索条件过滤
+      if (searchForm.content) {
+        list = list.filter(notif => 
+          (notif.title && notif.title.includes(searchForm.content)) ||
+          (notif.content && notif.content.includes(searchForm.content))
+        )
+      }
+      
+      if (searchForm.isRead !== null && searchForm.isRead !== undefined && searchForm.isRead !== '') {
+        list = list.filter(notif => notif.isRead === searchForm.isRead)
+      }
+      
+      // 加载项目标题（如果有projectId）
+      for (const notif of list) {
+        if (notif.projectId) {
+          try {
+            const projectRes = await request.get(`/api/projects/${notif.projectId}`)
+            if (projectRes.code === '200' && projectRes.data) {
+              notif.projectTitle = projectRes.data.title
+            }
+          } catch (error) {
+            console.error('加载项目信息失败:', error)
+          }
+        }
       }
       
       messageList.value = list
@@ -230,9 +238,6 @@ const loadMessages = async () => {
 
 const handleReset = () => {
   searchForm.content = ''
-  searchForm.projectTitle = ''
-  searchForm.notificationType = null
-  searchForm.senderType = null
   searchForm.isRead = null
   pagination.current = 1
   loadMessages()
@@ -245,7 +250,7 @@ const handleViewDetail = async (record) => {
   // 如果未读，标记为已读
   if (!record.isRead) {
     try {
-      const res = await request.put(`/api/messages/${record.id}/read`)
+      const res = await request.put(`/api/notifications/${record.id}/read`)
       if (res.code === '200') {
         // 更新本地状态
         record.isRead = true
@@ -254,6 +259,12 @@ const handleViewDetail = async (record) => {
     } catch (error) {
       console.error('标记已读失败:', error)
     }
+  }
+  
+  // 如果是证书通知，可以跳转到证书详情
+  if (record.type === 'CERTIFICATE' && record.deliverableId) {
+    // deliverableId 字段在这里存储的是 certificateId
+    // 可以跳转到自由职业者详情页面查看证书
   }
 }
 
@@ -267,7 +278,7 @@ const handleDelete = (id) => {
     content: '确定要删除此通知吗？',
     onOk: async () => {
       try {
-        const res = await request.delete(`/api/messages/${id}`)
+        const res = await request.delete(`/api/notifications/${id}`)
         if (res.code === '200') {
           message.success('删除成功')
           loadMessages()

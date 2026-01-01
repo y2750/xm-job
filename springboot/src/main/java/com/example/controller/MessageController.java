@@ -54,10 +54,13 @@ public class MessageController {
 
     /**
      * 根据项目ID查询消息
+     * @param projectId 项目ID
+     * @param freelancerId 可选，自由职业者的id（freelancer表的id），用于区分不同自由职业者的聊天
      */
     @GetMapping("/project/{projectId}")
-    public Result selectByProjectId(@PathVariable Integer projectId) {
-        List<Message> list = messageService.selectByProjectId(projectId);
+    public Result selectByProjectId(@PathVariable Integer projectId,
+                                     @RequestParam(required = false) Integer freelancerId) {
+        List<Message> list = messageService.selectByProjectId(projectId, freelancerId);
         return Result.success(list);
     }
 

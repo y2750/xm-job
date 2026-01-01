@@ -1,0 +1,57 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.FreelancerProjectHistoryMapper">
+
+    <insert id="insert" parameterType="com.example.entity.FreelancerProjectHistory" useGeneratedKeys="true" keyProperty="id">
+        insert into freelancer_project_history
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="freelancerId != null">freelancer_id,</if>
+            <if test="projectId != null">project_id,</if>
+            <if test="projectTitle != null">project_title,</if>
+            <if test="projectBudget != null">project_budget,</if>
+            <if test="completionDate != null">completion_date,</if>
+            <if test="enterpriseRating != null">enterprise_rating,</if>
+            <if test="enterpriseComment != null">enterprise_comment,</if>
+            <if test="status != null">status,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="freelancerId != null">#{freelancerId},</if>
+            <if test="projectId != null">#{projectId},</if>
+            <if test="projectTitle != null">#{projectTitle},</if>
+            <if test="projectBudget != null">#{projectBudget},</if>
+            <if test="completionDate != null">#{completionDate},</if>
+            <if test="enterpriseRating != null">#{enterpriseRating},</if>
+            <if test="enterpriseComment != null">#{enterpriseComment},</if>
+            <if test="status != null">#{status},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.FreelancerProjectHistory">
+        update freelancer_project_history
+        <set>
+            <if test="projectTitle != null">project_title = #{projectTitle},</if>
+            <if test="projectBudget != null">project_budget = #{projectBudget},</if>
+            <if test="completionDate != null">completion_date = #{completionDate},</if>
+            <if test="enterpriseRating != null">enterprise_rating = #{enterpriseRating},</if>
+            <if test="enterpriseComment != null">enterprise_comment = #{enterpriseComment},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

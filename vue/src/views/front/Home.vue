@@ -64,6 +64,31 @@
             >
             </a-select>
           </a-form-item>
+          <a-form-item label="项目类型">
+            <a-select 
+              v-model:value="searchForm.projectType" 
+              placeholder="项目类型" 
+              allow-clear 
+              style="width: 130px"
+            >
+              <a-select-option value="WEB">网站开发</a-select-option>
+              <a-select-option value="MOBILE">移动应用</a-select-option>
+              <a-select-option value="DESIGN">设计</a-select-option>
+              <a-select-option value="OTHER">其他</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="难度等级">
+            <a-select 
+              v-model:value="searchForm.difficultyLevel" 
+              placeholder="难度等级" 
+              allow-clear 
+              style="width: 130px"
+            >
+              <a-select-option value="EASY">简单</a-select-option>
+              <a-select-option value="MEDIUM">中等</a-select-option>
+              <a-select-option value="HARD">困难</a-select-option>
+            </a-select>
+          </a-form-item>
           <a-form-item label="状态">
             <a-select 
               v-model:value="searchForm.status" 
@@ -111,12 +136,28 @@
                 :class="{ active: selectedProjectId === item.id }"
                 @click="handleSelectProject(item)"
               >
+                <!-- 封面图 -->
+                <div v-if="item.coverImage" class="project-cover">
+                  <img :src="item.coverImage" :alt="item.title" />
+                </div>
                 <div class="project-card-header">
                   <h3 class="project-title">{{ item.title }}</h3>
                   <div class="project-budget">
                     <span class="budget-text">{{ item.budgetMin || 0 }} - {{ item.budgetMax || 0 }}</span>
                     <span class="budget-unit">元</span>
                   </div>
+                </div>
+                <!-- 项目类型和难度标签 -->
+                <div class="project-meta-tags">
+                  <a-tag v-if="item.projectType" :color="getProjectTypeColor(item.projectType)">
+                    {{ getProjectTypeText(item.projectType) }}
+                  </a-tag>
+                  <a-tag v-if="item.difficultyLevel" :color="getDifficultyColor(item.difficultyLevel)">
+                    {{ getDifficultyText(item.difficultyLevel) }}
+                  </a-tag>
+                  <a-tag v-if="item.preferredExperience && item.preferredExperience !== 'BOTH'" color="orange">
+                    {{ item.preferredExperience === 'NEWBIE' ? '偏向新手' : '偏向老手' }}
+                  </a-tag>
                 </div>
                 <div class="project-tags">
                   <a-tag 
@@ -261,6 +302,30 @@
 
                 <a-divider />
 
+                <!-- 封面图 -->
+                <div v-if="selectedProject.coverImage" class="detail-cover-image">
+                  <img :src="selectedProject.coverImage" :alt="selectedProject.title" />
+                </div>
+
+                <!-- 项目类型和难度 -->
+                <div class="detail-section">
+                  <h3 class="section-title">
+                    <TagsOutlined />
+                    项目信息
+                  </h3>
+                  <div class="project-info-tags">
+                    <a-tag v-if="selectedProject.projectType" :color="getProjectTypeColor(selectedProject.projectType)">
+                      <AppstoreOutlined /> {{ getProjectTypeText(selectedProject.projectType) }}
+                    </a-tag>
+                    <a-tag v-if="selectedProject.difficultyLevel" :color="getDifficultyColor(selectedProject.difficultyLevel)">
+                      <ThunderboltOutlined /> {{ getDifficultyText(selectedProject.difficultyLevel) }}
+                    </a-tag>
+                    <a-tag v-if="selectedProject.preferredExperience && selectedProject.preferredExperience !== 'BOTH'" color="orange">
+                      <UserOutlined /> {{ selectedProject.preferredExperience === 'NEWBIE' ? '偏向新手' : '偏向老手' }}
+                    </a-tag>
+                  </div>
+                </div>
+
                 <div class="detail-section">
                   <h3 class="section-title">
                     <TagsOutlined />
@@ -286,6 +351,42 @@
                     项目描述
                   </h3>
                   <div class="section-content" v-html="selectedProject.description || '暂无描述'"></div>
+                </div>
+
+                <div class="detail-section" v-if="selectedProject.requirementDetails">
+                  <h3 class="section-title">
+                    <FileTextOutlined />
+                    详细需求说明
+                  </h3>
+                  <div class="section-content" v-html="selectedProject.requirementDetails"></div>
+                </div>
+
+                <!-- 项目附件 -->
+                <div class="detail-section" v-if="projectAttachments.length > 0">
+                  <h3 class="section-title">
+                    <PaperClipOutlined />
+                    项目附件
+                  </h3>
+                  <div class="attachment-list">
+                    <a-list :data-source="projectAttachments" size="small">
+                      <template #renderItem="{ item }">
+                        <a-list-item>
+                          <a-list-item-meta>
+                            <template #title>
+                              <a :href="item.fileUrl" target="_blank" :download="item.fileName">
+                                <FileOutlined /> {{ item.fileName }}
+                              </a>
+                            </template>
+                            <template #description>
+                              <span style="color: #999; font-size: 12px">
+                                {{ formatFileSize(item.fileSize) }} | {{ item.fileType }}
+                              </span>
+                            </template>
+                          </a-list-item-meta>
+                        </a-list-item>
+                      </template>
+                    </a-list>
+                  </div>
                 </div>
 
                 <div class="detail-section" v-if="selectedProject.deliveryRequirement">
@@ -408,7 +509,11 @@ import {
   FileTextOutlined,
   ProfileOutlined,
   InfoCircleOutlined,
-  FileSearchOutlined
+  FileSearchOutlined,
+  AppstoreOutlined,
+  ThunderboltOutlined,
+  PaperClipOutlined,
+  FileOutlined
 } from '@ant-design/icons-vue'
 import request from '@/utils/request'
 
@@ -427,13 +532,16 @@ const enterpriseOptions = ref([])
 const enterpriseSearchKeyword = ref('')
 const enterpriseDetail = ref(null)
 const enterpriseModalVisible = ref(false)
+const projectAttachments = ref([])
 
 const searchForm = reactive({
   title: '',
   skillsRequired: '',
   status: '',
   enterpriseId: undefined,
-  enterpriseName: ''
+  enterpriseName: '',
+  projectType: undefined,
+  difficultyLevel: undefined
 })
 
 const pagination = reactive({
@@ -465,6 +573,8 @@ const loadProjects = async () => {
       title: searchForm.title,
       skillsRequired: searchForm.skillsRequired,
       status: searchForm.status,
+      projectType: searchForm.projectType,
+      difficultyLevel: searchForm.difficultyLevel,
       pageNum: pagination.current,
       pageSize: pagination.pageSize
     }
@@ -574,7 +684,9 @@ const handleReset = () => {
     skillsRequired: '',
     status: '',
     enterpriseId: undefined,
-    enterpriseName: ''
+    enterpriseName: '',
+    projectType: undefined,
+    difficultyLevel: undefined
   })
   enterpriseSearchKeyword.value = ''
   selectedProjectId.value = null
@@ -631,6 +743,9 @@ const loadProjectDetail = async (id) => {
       }
       
       selectedProject.value = project
+      
+      // 加载项目附件
+      await loadProjectAttachments(id)
     } else {
       message.error(res.msg || '加载项目详情失败')
     }
@@ -640,6 +755,64 @@ const loadProjectDetail = async (id) => {
   } finally {
     detailLoading.value = false
   }
+}
+
+const loadProjectAttachments = async (projectId) => {
+  try {
+    const res = await request.get(`/api/projects/${projectId}/attachments`)
+    if (res.code === '200') {
+      projectAttachments.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载项目附件失败:', error)
+    projectAttachments.value = []
+  }
+}
+
+const getProjectTypeColor = (type) => {
+  const colors = {
+    'WEB': 'blue',
+    'MOBILE': 'green',
+    'DESIGN': 'purple',
+    'OTHER': 'default'
+  }
+  return colors[type] || 'default'
+}
+
+const getProjectTypeText = (type) => {
+  const texts = {
+    'WEB': '网站开发',
+    'MOBILE': '移动应用',
+    'DESIGN': '设计',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
+}
+
+const getDifficultyColor = (difficulty) => {
+  const colors = {
+    'EASY': 'green',
+    'MEDIUM': 'orange',
+    'HARD': 'red'
+  }
+  return colors[difficulty] || 'default'
+}
+
+const getDifficultyText = (difficulty) => {
+  const texts = {
+    'EASY': '简单',
+    'MEDIUM': '中等',
+    'HARD': '困难'
+  }
+  return texts[difficulty] || difficulty
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
 const handleViewDetail = (id) => {
@@ -939,6 +1112,28 @@ onMounted(async () => {
   transition: all 0.2s ease;
   border: 1px solid transparent;
   margin-bottom: 8px;
+}
+
+.project-cover {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.project-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-meta-tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .project-card:hover {

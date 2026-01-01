@@ -27,6 +27,10 @@
             <if test="rating != null">rating,</if>
             <if test="completedProjects != null">completed_projects,</if>
             <if test="creditScore != null">credit_score,</if>
+            <if test="experienceLevel != null">experience_level,</if>
+            <if test="basePricePerHour != null">base_price_per_hour,</if>
+            <if test="minProjectBudget != null">min_project_budget,</if>
+            <if test="maxProjectBudget != null">max_project_budget,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userId != null">#{userId},</if>
@@ -39,6 +43,10 @@
             <if test="rating != null">#{rating},</if>
             <if test="completedProjects != null">#{completedProjects},</if>
             <if test="creditScore != null">#{creditScore},</if>
+            <if test="experienceLevel != null">#{experienceLevel},</if>
+            <if test="basePricePerHour != null">#{basePricePerHour},</if>
+            <if test="minProjectBudget != null">#{minProjectBudget},</if>
+            <if test="maxProjectBudget != null">#{maxProjectBudget},</if>
         </trim>
     </insert>
 
@@ -54,6 +62,10 @@
             <if test="rating != null">rating = #{rating},</if>
             <if test="completedProjects != null">completed_projects = #{completedProjects},</if>
             <if test="creditScore != null">credit_score = #{creditScore},</if>
+            <if test="experienceLevel != null">experience_level = #{experienceLevel},</if>
+            <if test="basePricePerHour != null">base_price_per_hour = #{basePricePerHour},</if>
+            <if test="minProjectBudget != null">min_project_budget = #{minProjectBudget},</if>
+            <if test="maxProjectBudget != null">max_project_budget = #{maxProjectBudget},</if>
         </set>
         where id = #{id}
     </update>

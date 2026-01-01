@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 15/12/2025 22:17:04
+ Date: 01/01/2026 17:31:41
 */
 
 SET NAMES utf8mb4;
@@ -224,16 +224,75 @@ CREATE TABLE `freelancer`  (
   `rating` decimal(3, 2) NULL DEFAULT 0.00 COMMENT '评分',
   `completed_projects` int NULL DEFAULT 0 COMMENT '完成项目数',
   `credit_score` int NULL DEFAULT 100 COMMENT '信誉分（默认100分）',
+  `experience_level` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'NEWBIE' COMMENT '经验等级：NEWBIE（新手，0-2个项目）/JUNIOR（初级，3-5个）/SENIOR（高级，6-10个）/EXPERT（专家，10+个）',
+  `base_price_per_hour` decimal(10, 2) NULL DEFAULT NULL COMMENT '基础时薪（用于价格体系）',
+  `min_project_budget` decimal(10, 2) NULL DEFAULT NULL COMMENT '最低接单预算',
+  `max_project_budget` decimal(10, 2) NULL DEFAULT NULL COMMENT '最高接单预算',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_user_id`(`user_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '自由职业者扩展表' ROW_FORMAT = DYNAMIC;
+  UNIQUE INDEX `uk_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_experience_level`(`experience_level` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '自由职业者扩展表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of freelancer
 -- ----------------------------
-INSERT INTO `freelancer` VALUES (1, 5, 'Java，python,vue', '', 0, 1, '2025-12-07 09:36:23', NULL, 0.00, 1, 95, '2025-12-07 15:16:40', '2025-12-08 15:53:22');
+INSERT INTO `freelancer` VALUES (1, 5, 'Java，python,vue', '', 0, 1, '2025-12-07 09:36:23', NULL, 0.00, 1, 95, 'NEWBIE', NULL, NULL, NULL, '2025-12-07 15:16:40', '2026-01-01 15:20:51');
+INSERT INTO `freelancer` VALUES (2, 4, 'Java,前端,移动应用开发', '', 0, 1, '2026-01-01 09:19:10', NULL, 0.00, 0, 100, '', NULL, NULL, NULL, '2026-01-01 17:18:58', '2026-01-01 17:19:10');
+INSERT INTO `freelancer` VALUES (3, 3, '111', '', 0, 0, NULL, NULL, 0.00, 0, 100, '', NULL, NULL, NULL, '2026-01-01 17:26:26', '2026-01-01 17:26:26');
+
+-- ----------------------------
+-- Table structure for freelancer_certificate
+-- ----------------------------
+DROP TABLE IF EXISTS `freelancer_certificate`;
+CREATE TABLE `freelancer_certificate`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '证书ID',
+  `freelancer_id` int NOT NULL COMMENT '自由职业者ID',
+  `certificate_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '证书类型：DEGREE（学历证书）/PROFESSIONAL（职业证书）/AWARD（获奖证书）/OTHER（其他）',
+  `certificate_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '证书名称',
+  `issuing_organization` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '颁发机构',
+  `issue_date` date NULL DEFAULT NULL COMMENT '颁发日期',
+  `expiry_date` date NULL DEFAULT NULL COMMENT '到期日期（可选）',
+  `certificate_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '证书文件URL',
+  `verified` tinyint(1) NULL DEFAULT 0 COMMENT '是否已验证',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE,
+  CONSTRAINT `freelancer_certificate_ibfk_1` FOREIGN KEY (`freelancer_id`) REFERENCES `freelancer` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '自由职业者证书表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of freelancer_certificate
+-- ----------------------------
+INSERT INTO `freelancer_certificate` VALUES (2, 1, 'DEGREE', '学生证', '', '2023-01-09', NULL, 'https://appcover-1328558808.cos.ap-shanghai.myqcloud.com/files/1767250922914-47075191.jpg', 1, '2026-01-01 15:02:18');
+
+-- ----------------------------
+-- Table structure for freelancer_project_history
+-- ----------------------------
+DROP TABLE IF EXISTS `freelancer_project_history`;
+CREATE TABLE `freelancer_project_history`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '历史记录ID',
+  `freelancer_id` int NOT NULL COMMENT '自由职业者ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `project_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '项目标题（冗余，便于查询）',
+  `project_budget` decimal(10, 2) NULL DEFAULT NULL COMMENT '项目预算',
+  `completion_date` date NULL DEFAULT NULL COMMENT '完成日期',
+  `enterprise_rating` decimal(3, 2) NULL DEFAULT NULL COMMENT '企业评分（1-5分）',
+  `enterprise_comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '企业评价',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'COMPLETED' COMMENT '状态：COMPLETED（已完成）/CANCELLED（已取消）',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_freelancer_id`(`freelancer_id` ASC) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  CONSTRAINT `freelancer_project_history_ibfk_1` FOREIGN KEY (`freelancer_id`) REFERENCES `freelancer` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `freelancer_project_history_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '自由职业者项目历史战绩表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of freelancer_project_history
+-- ----------------------------
+INSERT INTO `freelancer_project_history` VALUES (1, 1, 8, '开发系统', 3000.00, '2025-12-08', NULL, NULL, 'COMPLETED', '2026-01-01 12:28:12');
 
 -- ----------------------------
 -- Table structure for industry
@@ -280,31 +339,11 @@ CREATE TABLE `message`  (
   INDEX `idx_submission_id`(`submission_id` ASC) USING BTREE,
   INDEX `idx_recipient_id`(`recipient_id` ASC) USING BTREE,
   INDEX `idx_is_read`(`is_read` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 24 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of message
 -- ----------------------------
-INSERT INTO `message` VALUES (1, 1, 5, 5, 'FREELANCER', 2, '111', 0, '2025-12-07 18:39:41');
-INSERT INTO `message` VALUES (2, 1, 5, 2, 'ENTERPRISE', 5, '222', 0, '2025-12-07 18:39:54');
-INSERT INTO `message` VALUES (3, 1, 5, 5, 'FREELANCER', 2, '🙂你好', 0, '2025-12-07 18:46:06');
-INSERT INTO `message` VALUES (4, 1, 5, 5, 'FREELANCER', 2, '你觉得怎么样', 0, '2025-12-07 18:49:49');
-INSERT INTO `message` VALUES (5, 1, 5, 5, 'FREELANCER', 2, '111111111111111111', 0, '2025-12-07 18:55:51');
-INSERT INTO `message` VALUES (6, 1, 5, 2, 'ENTERPRISE', 5, '😃', 0, '2025-12-07 18:59:56');
-INSERT INTO `message` VALUES (7, 1, 5, 5, 'FREELANCER', 2, '5320可以吗', 0, '2025-12-07 21:16:54');
-INSERT INTO `message` VALUES (8, 1, 5, 2, 'ENTERPRISE', 5, '可以😁', 0, '2025-12-07 21:17:24');
-INSERT INTO `message` VALUES (9, 8, 6, 2, 'ENTERPRISE', 5, '合作嘛', 1, '2025-12-07 22:32:48');
-INSERT INTO `message` VALUES (10, 8, 6, 2, 'ENTERPRISE', 5, '低一点', 1, '2025-12-07 22:33:00');
-INSERT INTO `message` VALUES (11, 8, 6, 5, 'FREELANCER', 2, '好的', 1, '2025-12-07 22:33:12');
-INSERT INTO `message` VALUES (13, 8, NULL, 0, 'ENTERPRISE', 5, '您的项目《开发系统》成品验收失败（已超过截止时间），已扣除保证金并赔付给企业。', 1, '2025-12-08 15:35:45');
-INSERT INTO `message` VALUES (16, 9, NULL, 5, 'FREELANCER', 2, '111', 1, '2025-12-15 12:23:06');
-INSERT INTO `message` VALUES (17, 9, NULL, 5, 'FREELANCER', 2, '我的报价是5666', 1, '2025-12-15 14:34:06');
-INSERT INTO `message` VALUES (18, 9, NULL, 5, 'FREELANCER', 2, '\n      <div style=\"padding: 16px; background: #f5f5f5; border-radius: 8px; max-width: 400px;\">\n        <div style=\"display: flex; align-items: center; margin-bottom: 12px;\">\n          <img src=\"http://localhost:9090/files/download/1765106085382-OIP.webp\" style=\"width: 60px; height: 60px; border-radius: 50%; margin-right: 12px;\" onerror=\"this.style.display=\'none\'\">\n          <div>\n            <div style=\"font-size: 16px; font-weight: bold; margin-bottom: 4px;\">杨过</div>\n            <div style=\"font-size: 12px; color: #8c8c8c;\">Java，python,vue</div>\n          </div>\n        </div>\n        <div style=\"font-size: 14px; color: #262626; margin-bottom: 8px;\">\n          <div><strong>评分：</strong>0分</div>\n          <div><strong>完成项目：</strong>1个</div>\n          <div><strong>信誉分：</strong>95分</div>\n        </div>\n        <div style=\"font-size: 12px; color: #8c8c8c; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e8e8;\">\n          <a href=\"javascript:void(0)\" onclick=\"window.handleViewProfileCard && window.handleViewProfileCard()\" style=\"color: #1890ff; text-decoration: underline;\">点击查看完整资料</a>\n        </div>\n      </div>\n    ', 1, '2025-12-15 14:39:31');
-INSERT INTO `message` VALUES (19, 9, NULL, 5, 'FREELANCER', 2, '\n      <div style=\"padding: 16px; background: #f5f5f5; border-radius: 8px; max-width: 400px;\">\n        <div style=\"display: flex; align-items: center; margin-bottom: 12px;\">\n          <img src=\"http://localhost:9090/files/download/1765106085382-OIP.webp\" style=\"width: 60px; height: 60px; border-radius: 50%; margin-right: 12px;\" onerror=\"this.style.display=\'none\'\">\n          <div>\n            <div style=\"font-size: 16px; font-weight: bold; margin-bottom: 4px;\">杨过</div>\n            <div style=\"font-size: 12px; color: #8c8c8c;\">Java，python,vue</div>\n          </div>\n        </div>\n        <div style=\"font-size: 14px; color: #262626; margin-bottom: 8px;\">\n          <div><strong>评分：</strong>0分</div>\n          <div><strong>完成项目：</strong>1个</div>\n          <div><strong>信誉分：</strong>95分</div>\n        </div>\n        <div style=\"font-size: 12px; color: #8c8c8c; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e8e8;\">\n          <a href=\"javascript:void(0)\" onclick=\"window.handleViewProfileCard && window.handleViewProfileCard()\" style=\"color: #1890ff; text-decoration: underline;\">点击查看完整资料</a>\n        </div>\n      </div>\n    ', 1, '2025-12-15 14:39:47');
-INSERT INTO `message` VALUES (20, 9, NULL, 2, 'ENTERPRISE', 5, '1', 1, '2025-12-15 19:26:56');
-INSERT INTO `message` VALUES (21, 9, NULL, 2, 'ENTERPRISE', 5, '😁', 1, '2025-12-15 19:39:06');
-INSERT INTO `message` VALUES (22, 9, NULL, 2, 'ENTERPRISE', 5, 'https://appcover-1328558808.cos.ap-shanghai.myqcloud.com/files/1765800789221-4466a027.ico', 1, '2025-12-15 20:13:10');
-INSERT INTO `message` VALUES (23, 9, NULL, 2, 'ENTERPRISE', 5, 'https://appcover-1328558808.cos.ap-shanghai.myqcloud.com/files/1765802176121-f7cec2f0.png', 1, '2025-12-15 20:36:16');
 
 -- ----------------------------
 -- Table structure for notice
@@ -348,7 +387,7 @@ CREATE TABLE `notification`  (
   INDEX `idx_is_read`(`is_read` ASC) USING BTREE,
   INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '业务通知表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '业务通知表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of notification
@@ -358,6 +397,10 @@ INSERT INTO `notification` VALUES (2, 'SUBMISSION', 'INDIVIDUAL', 2, 'ENTERPRISE
 INSERT INTO `notification` VALUES (3, 'PROJECT_STATUS_CHANGE', 'INDIVIDUAL', 5, 'FREELANCER', 9, NULL, NULL, '项目信息已更新', '您关注的项目「在线购物商城」的信息已更新，请查看最新内容。', 1, '2025-12-15 21:57:25', '2025-12-15 21:57:14');
 INSERT INTO `notification` VALUES (4, 'PROJECT_STATUS_CHANGE', 'INDIVIDUAL', 5, 'FREELANCER', 9, NULL, NULL, '项目信息已更新', '您关注的项目「在线购物商城」的信息已更新，请查看最新内容。', 1, '2025-12-15 22:16:26', '2025-12-15 22:08:33');
 INSERT INTO `notification` VALUES (5, 'PROJECT_STATUS_CHANGE', 'INDIVIDUAL', 5, 'FREELANCER', 9, NULL, NULL, '项目信息已更新', '您关注的项目「在线购物商城」的信息已更新，请查看最新内容。', 1, '2025-12-15 22:16:30', '2025-12-15 22:16:08');
+INSERT INTO `notification` VALUES (6, 'CERTIFICATE', 'INDIVIDUAL', 1, 'ADMIN', NULL, NULL, 2, '证书上传通知', '自由职业者《杨过》上传了证书《学生证》，请查看。', 1, '2026-01-01 15:14:23', '2026-01-01 15:02:18');
+INSERT INTO `notification` VALUES (7, 'CERTIFICATE', 'INDIVIDUAL', 5, 'FREELANCER', NULL, NULL, 2, '证书认证状态变更', '您的证书《学生证》认证状态已变更为：未认证', 1, '2026-01-01 15:03:31', '2026-01-01 15:03:24');
+INSERT INTO `notification` VALUES (8, 'CERTIFICATE', 'INDIVIDUAL', 5, 'FREELANCER', NULL, NULL, 2, '证书认证状态变更', '您的证书《学生证》认证状态已变更为：已认证', 1, '2026-01-01 15:10:19', '2026-01-01 15:03:43');
+INSERT INTO `notification` VALUES (9, 'CERTIFICATION', 'INDIVIDUAL', 4, 'FREELANCER', NULL, NULL, NULL, '账号认证通过', '恭喜！您的账号《赵六》已通过认证审核，现在可以提交稿件了。', 1, '2026-01-01 17:25:31', '2026-01-01 17:19:10');
 
 -- ----------------------------
 -- Table structure for notification_read
@@ -374,7 +417,7 @@ CREATE TABLE `notification_read`  (
   INDEX `idx_notification_id`(`notification_id` ASC) USING BTREE,
   INDEX `idx_user`(`user_id` ASC, `user_type` ASC) USING BTREE,
   CONSTRAINT `fk_notification_read_notification` FOREIGN KEY (`notification_id`) REFERENCES `notification` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '通知读取记录表（全体通知）' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '通知读取记录表（全体通知）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of notification_read
@@ -467,6 +510,13 @@ CREATE TABLE `project`  (
   `deadline` datetime NULL DEFAULT NULL COMMENT '截止时间',
   `delivery_deadline` datetime NULL DEFAULT NULL COMMENT '成品提交截止时间',
   `delivery_requirement` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '交付要求',
+  `difficulty_level` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'MEDIUM' COMMENT '难度等级：EASY（简单）/MEDIUM（中等）/HARD（困难）',
+  `project_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'OTHER' COMMENT '项目类型：WEB（网站开发）/MOBILE（移动应用）/DESIGN（设计）/OTHER（其他）',
+  `priority` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'MEDIUM' COMMENT '优先级：LOW（低）/MEDIUM（中）/HIGH（高）',
+  `preferred_experience` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'BOTH' COMMENT '偏向经验：NEWBIE（新手）/EXPERIENCED（老手）/BOTH（不限）',
+  `cover_image` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面图片URL',
+  `requirement_details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '详细需求说明（支持富文本）',
+  `reject_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '打回理由（管理员审核打回时填写）',
   `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '状态：PUBLISHED/CLOSED/CONFIRMED',
   `confirmed_freelancer_id` int NULL DEFAULT NULL COMMENT '确定合作的自由职业者ID',
   `paid_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '已支付金额',
@@ -475,14 +525,37 @@ CREATE TABLE `project`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_enterprise_id`(`enterprise_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_deadline`(`deadline` ASC) USING BTREE
+  INDEX `idx_deadline`(`deadline` ASC) USING BTREE,
+  INDEX `idx_difficulty_level`(`difficulty_level` ASC) USING BTREE,
+  INDEX `idx_preferred_experience`(`preferred_experience` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '外包项目表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of project
 -- ----------------------------
-INSERT INTO `project` VALUES (8, 1, '开发系统', '在线管理系统', 'java，前端', 1000.00, 3000.00, '2026-01-01 23:59:59', NULL, '11111', 'COMPLETED', 1, 2400.00, '2025-12-07 22:23:53', '2025-12-08 16:02:24');
-INSERT INTO `project` VALUES (9, 1, '在线购物商城', '做一个在线购物商城系统', 'Java,vue', 11000.00, 15600.00, '2026-03-15 00:00:00', NULL, '保证系统的部署，运行', 'PUBLISHED', NULL, 6625.00, '2025-12-15 11:26:39', '2025-12-15 22:16:08');
+INSERT INTO `project` VALUES (8, 1, '开发系统', '在线管理系统', 'java，前端', 1000.00, 3000.00, '2026-01-01 23:59:59', NULL, '11111', 'MEDIUM', 'OTHER', 'MEDIUM', 'BOTH', NULL, NULL, NULL, 'COMPLETED', 1, 2400.00, '2025-12-07 22:23:53', '2025-12-08 16:02:24');
+INSERT INTO `project` VALUES (9, 1, '在线购物商城', '做一个在线购物商城系统', 'Java,vue', 11000.00, 15600.00, '2026-03-15 00:00:00', NULL, '保证系统的部署，运行', 'MEDIUM', 'OTHER', 'MEDIUM', 'BOTH', NULL, NULL, NULL, 'PUBLISHED', NULL, 6625.00, '2025-12-15 11:26:39', '2025-12-15 22:16:08');
+
+-- ----------------------------
+-- Table structure for project_attachment
+-- ----------------------------
+DROP TABLE IF EXISTS `project_attachment`;
+CREATE TABLE `project_attachment`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '附件ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `file_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件URL',
+  `file_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原文件名',
+  `file_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文件类型：IMAGE/DOCUMENT/OTHER',
+  `file_size` bigint NULL DEFAULT NULL COMMENT '文件大小(bytes)',
+  `upload_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE,
+  CONSTRAINT `project_attachment_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '项目附件表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of project_attachment
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for project_order
@@ -662,7 +735,7 @@ INSERT INTO `user` VALUES (1, 'zhangsan', '123456', '张三', 'http://localhost:
 INSERT INTO `user` VALUES (2, 'lisi', '123456', '李四', 'http://localhost:9090/files/download/1726038113795-柯基.jpeg', 'USER', '18877776666', 'lisi@xm.com');
 INSERT INTO `user` VALUES (3, 'wangwu', '123456', '王五', 'http://localhost:9090/files/download/1726038136850-拉布拉多.jpeg', 'USER', '18855556666', 'wangwu@xm.com');
 INSERT INTO `user` VALUES (4, 'zhaoliu', '123456', '赵六', 'http://localhost:9090/files/download/1726127830447-拉布拉多.jpeg', 'USER', '18899997777', 'zhaoliu@xm.com');
-INSERT INTO `user` VALUES (5, 'user1', '123456', '杨过', 'http://localhost:9090/files/download/1765106085382-OIP.webp', 'USER', '19919871254', '111@qq.com');
+INSERT INTO `user` VALUES (5, 'user1', '123456', '杨过', 'https://appcover-1328558808.cos.ap-shanghai.myqcloud.com/files/1767249817714-1d59af81.jpg', 'USER', '19919871254', '111@qq.com');
 
 -- ----------------------------
 -- Table structure for withdrawal_record

@@ -34,9 +34,9 @@
           <div v-if="chatList.length > 0" class="chat-list">
             <div
               v-for="chat in filteredChatList"
-              :key="chat.submissionId || `project_${chat.projectId}`"
+              :key="chat.submissionId || `project_${chat.projectId}_freelancer_${chat.freelancerId || 'null'}`"
               class="chat-item"
-              :class="{ active: (chat.submissionId && selectedSubmissionId === chat.submissionId) || (!chat.submissionId && selectedChat && selectedChat.projectId === chat.projectId) }"
+              :class="{ active: (chat.submissionId && selectedSubmissionId === chat.submissionId) || (!chat.submissionId && selectedChat && selectedChat.projectId === chat.projectId && selectedChat.freelancerId === chat.freelancerId) }"
               @click="handleSelectChat(chat)"
             >
               <div class="chat-avatar">
@@ -355,6 +355,7 @@ const previewImageRef = ref(null)
 
 const userRole = ref(localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')).role : '')
 const isEnterprise = computed(() => userRole.value === 'EMPLOY')
+const freelancerInfo = ref(null) // 当前用户的自由职业者信息（用于检查认证状态）
 
 const showFilterTabs = ref(false)
 const filterTabs = [
@@ -530,8 +531,12 @@ const loadChatList = async () => {
 }
 
 const handleSelectChat = async (chat) => {
-  const chatKey = chat.submissionId || `project_${chat.projectId}`
-  const currentKey = selectedSubmissionId.value ? selectedSubmissionId.value.toString() : (selectedChat.value ? `project_${selectedChat.value.projectId}` : null)
+  const chatKey = chat.submissionId || `project_${chat.projectId}_freelancer_${chat.freelancerId || 'null'}`
+  const currentKey = selectedSubmissionId.value 
+    ? selectedSubmissionId.value.toString() 
+    : (selectedChat.value 
+      ? `project_${selectedChat.value.projectId}_freelancer_${selectedChat.value.freelancerId || 'null'}` 
+      : null)
   
   if (currentKey === chatKey) {
     selectedSubmissionId.value = null
@@ -545,7 +550,8 @@ const handleSelectChat = async (chat) => {
   if (chat.submissionId) {
     await loadMessages(chat.submissionId)
   } else {
-    await loadMessagesByProject(chat.projectId)
+    // 传递freelancerId以确保只加载该自由职业者的消息
+    await loadMessagesByProject(chat.projectId, chat.freelancerId)
   }
   await loadProject(chat.projectId)
 }
@@ -572,7 +578,8 @@ const loadMessages = async (submissionId) => {
         if (selectedChat.value) {
           const updatedChat = chatList.value.find(c => 
             (c.submissionId && c.submissionId === selectedChat.value.submissionId) ||
-            (!c.submissionId && c.projectId === selectedChat.value.projectId)
+            (!c.submissionId && c.projectId === selectedChat.value.projectId && 
+             c.freelancerId === selectedChat.value.freelancerId)
           )
           if (updatedChat) {
             selectedChat.value = updatedChat
@@ -593,10 +600,14 @@ const loadMessages = async (submissionId) => {
   }
 }
 
-const loadMessagesByProject = async (projectId) => {
+const loadMessagesByProject = async (projectId, freelancerId = null) => {
   loadingMessages.value = true
   try {
-    const res = await request.get(`/api/messages/project/${projectId}`)
+    // 如果有freelancerId，传递它以确保只加载该自由职业者的消息
+    const url = freelancerId 
+      ? `/api/messages/project/${projectId}?freelancerId=${freelancerId}`
+      : `/api/messages/project/${projectId}`
+    const res = await request.get(url)
     if (res.code === '200') {
       messageList.value = res.data || []
       // 标记消息为已读
@@ -615,7 +626,8 @@ const loadMessagesByProject = async (projectId) => {
         if (selectedChat.value) {
           const updatedChat = chatList.value.find(c => 
             (c.submissionId && c.submissionId === selectedChat.value.submissionId) ||
-            (!c.submissionId && c.projectId === selectedChat.value.projectId)
+            (!c.submissionId && c.projectId === selectedChat.value.projectId && 
+             c.freelancerId === selectedChat.value.freelancerId)
           )
           if (updatedChat) {
             selectedChat.value = updatedChat
@@ -652,6 +664,32 @@ const handleSendMessage = async () => {
     return
   }
   
+  // 如果是自由职业者，检查认证状态
+  if (userRole.value === 'USER') {
+    // 如果还没有加载自由职业者信息，先加载
+    if (!freelancerInfo.value) {
+      try {
+        const res = await request.get('/api/freelancers/profile')
+        if (res.code === '200' && res.data) {
+          freelancerInfo.value = res.data
+        } else {
+          message.error('获取自由职业者信息失败')
+          return
+        }
+      } catch (error) {
+        console.error('获取自由职业者信息失败:', error)
+        message.error('获取自由职业者信息失败，请检查网络连接')
+        return
+      }
+    }
+    
+    // 检查认证状态
+    if (!freelancerInfo.value.verified) {
+      message.warning('您尚未完成认证，无法发起沟通。请先完成认证后再试。')
+      return
+    }
+  }
+  
   if (project.value && project.value.status === 'COMPLETED') {
     message.warning('项目已完成，无法继续聊天')
     return
@@ -682,11 +720,16 @@ const handleSendMessage = async () => {
         }
         await loadMessages(selectedChat.value.submissionId)
       } else {
-        const chat = chatList.value.find(c => c.projectId === selectedChat.value.projectId && !c.submissionId)
+        const chat = chatList.value.find(c => 
+          c.projectId === selectedChat.value.projectId && 
+          !c.submissionId &&
+          c.freelancerId === selectedChat.value.freelancerId
+        )
         if (chat) {
           selectedChat.value = chat
         }
-        await loadMessagesByProject(selectedChat.value.projectId)
+        // 传递freelancerId以确保只加载该自由职业者的消息
+        await loadMessagesByProject(selectedChat.value.projectId, selectedChat.value.freelancerId)
       }
       
       nextTick(() => {
@@ -840,15 +883,42 @@ const handleSendProfile = async () => {
     return
   }
   
-  try {
-    // 获取自由职业者信息
-    const freelancerRes = await request.get('/api/freelancers/profile')
-    if (freelancerRes.code !== '200' || !freelancerRes.data) {
-      message.error('获取个人资料失败')
+  // 检查认证状态
+  // 如果还没有加载自由职业者信息，先加载
+  if (!freelancerInfo.value) {
+    try {
+      const res = await request.get('/api/freelancers/profile')
+      if (res.code === '200' && res.data) {
+        freelancerInfo.value = res.data
+      } else {
+        message.error('获取自由职业者信息失败')
+        return
+      }
+    } catch (error) {
+      console.error('获取自由职业者信息失败:', error)
+      message.error('获取自由职业者信息失败，请检查网络连接')
       return
     }
-    
-    const freelancer = freelancerRes.data
+  }
+  
+  // 检查认证状态
+  if (!freelancerInfo.value.verified) {
+    message.warning('您尚未完成认证，无法发起沟通。请先完成认证后再试。')
+    return
+  }
+  
+  try {
+    // 获取自由职业者信息（如果还没有加载）
+    let freelancer = freelancerInfo.value
+    if (!freelancer) {
+      const freelancerRes = await request.get('/api/freelancers/profile')
+      if (freelancerRes.code !== '200' || !freelancerRes.data) {
+        message.error('获取个人资料失败')
+        return
+      }
+      freelancer = freelancerRes.data
+      freelancerInfo.value = freelancer
+    }
     const user = JSON.parse(localStorage.getItem('xm-user') || '{}')
     
     // 构建个人资料卡片内容
@@ -888,7 +958,8 @@ const handleSendProfile = async () => {
       if (selectedChat.value.submissionId) {
         await loadMessages(selectedChat.value.submissionId)
       } else {
-        await loadMessagesByProject(selectedChat.value.projectId)
+        // 传递freelancerId以确保只加载该自由职业者的消息
+        await loadMessagesByProject(selectedChat.value.projectId, selectedChat.value.freelancerId)
       }
       await loadChatList()
       nextTick(() => {
@@ -1449,12 +1520,29 @@ const handleSearch = () => {
 // 定时刷新聊天列表和消息
 let refreshInterval = null
 
+// 加载自由职业者信息（仅自由职业者需要）
+const loadFreelancerInfo = async () => {
+  if (userRole.value === 'USER') {
+    try {
+      const res = await request.get('/api/freelancers/profile')
+      if (res.code === '200' && res.data) {
+        freelancerInfo.value = res.data
+      }
+    } catch (error) {
+      console.error('加载自由职业者信息失败:', error)
+    }
+  }
+}
+
 onMounted(async () => {
   // 注册全局函数，用于个人资料卡片点击和图片预览
   window.handleViewProfileCard = handleViewProfileCard
   window.handlePreviewImage = handlePreviewImage
   
   console.log('Conversation onMounted: 路由参数', route.params)
+  
+  // 预加载自由职业者信息
+  await loadFreelancerInfo()
   
   await loadChatList()
   
@@ -1498,9 +1586,13 @@ onMounted(async () => {
         c.freelancerId === freelancerId
       )
     }
-    // 如果没有找到，查找没有submissionId的项目聊天
+    // 如果没有找到，查找没有submissionId的项目聊天（按freelancerId区分）
     if (!chat) {
-      chat = chatList.value.find(c => c.projectId === parseInt(route.params.projectId) && !c.submissionId)
+      chat = chatList.value.find(c => 
+        c.projectId === parseInt(route.params.projectId) && 
+        !c.submissionId &&
+        (freelancerId ? c.freelancerId === freelancerId : true)
+      )
     }
     if (chat) {
       console.log('Conversation onMounted: 找到现有聊天项', chat)
@@ -1513,7 +1605,8 @@ onMounted(async () => {
           console.log('Conversation onMounted: 虚拟聊天项创建成功，设置selectedChat', virtualChat)
           selectedChat.value = virtualChat
           selectedSubmissionId.value = null
-          await loadMessagesByProject(parseInt(route.params.projectId))
+          // 传递freelancerId以确保只加载该自由职业者的消息
+          await loadMessagesByProject(parseInt(route.params.projectId), virtualChat.freelancerId)
           await loadProject(virtualChat.projectId)
         } else {
           console.error('创建虚拟聊天项失败: virtualChat为null')
@@ -1534,7 +1627,7 @@ onMounted(async () => {
     if (selectedSubmissionId.value) {
       loadMessages(selectedSubmissionId.value)
     } else if (selectedChat.value && selectedChat.value.projectId && !selectedChat.value.submissionId) {
-      loadMessagesByProject(selectedChat.value.projectId)
+      loadMessagesByProject(selectedChat.value.projectId, selectedChat.value.freelancerId)
     }
   }, 30000)
 })
@@ -1607,7 +1700,7 @@ watch(() => route.params.projectId, async (newId, oldId) => {
         if (virtualChat) {
           selectedChat.value = virtualChat
           selectedSubmissionId.value = null
-          await loadMessagesByProject(parseInt(newId))
+          await loadMessagesByProject(parseInt(newId), virtualChat.freelancerId)
           await loadProject(virtualChat.projectId)
         } else {
           console.error('创建虚拟聊天项失败: virtualChat为null')

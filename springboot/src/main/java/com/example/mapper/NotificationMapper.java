@@ -55,3 +55,18 @@ public interface NotificationMapper {
     Integer countUnreadByUser(@Param("userId") Integer userId, @Param("userType") String userType);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

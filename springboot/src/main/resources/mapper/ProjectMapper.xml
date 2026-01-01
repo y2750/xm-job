@@ -37,6 +37,13 @@
             <if test="deadline != null">deadline,</if>
             <if test="deliveryDeadline != null">delivery_deadline,</if>
             <if test="deliveryRequirement != null">delivery_requirement,</if>
+            <if test="difficultyLevel != null">difficulty_level,</if>
+            <if test="projectType != null">project_type,</if>
+            <if test="priority != null">priority,</if>
+            <if test="preferredExperience != null">preferred_experience,</if>
+            <if test="coverImage != null">cover_image,</if>
+            <if test="requirementDetails != null">requirement_details,</if>
+            <if test="rejectReason != null">reject_reason,</if>
             <if test="status != null">status,</if>
             <if test="confirmedFreelancerId != null">confirmed_freelancer_id,</if>
             <if test="paidAmount != null">paid_amount,</if>
@@ -51,6 +58,13 @@
             <if test="deadline != null">#{deadline},</if>
             <if test="deliveryDeadline != null">#{deliveryDeadline},</if>
             <if test="deliveryRequirement != null">#{deliveryRequirement},</if>
+            <if test="difficultyLevel != null">#{difficultyLevel},</if>
+            <if test="projectType != null">#{projectType},</if>
+            <if test="priority != null">#{priority},</if>
+            <if test="preferredExperience != null">#{preferredExperience},</if>
+            <if test="coverImage != null">#{coverImage},</if>
+            <if test="requirementDetails != null">#{requirementDetails},</if>
+            <if test="rejectReason != null">#{rejectReason},</if>
             <if test="status != null">#{status},</if>
             <if test="confirmedFreelancerId != null">#{confirmedFreelancerId},</if>
             <if test="paidAmount != null">#{paidAmount},</if>
@@ -68,6 +82,13 @@
             <if test="deadline != null">deadline = #{deadline},</if>
             <if test="deliveryDeadline != null">delivery_deadline = #{deliveryDeadline},</if>
             <if test="deliveryRequirement != null">delivery_requirement = #{deliveryRequirement},</if>
+            <if test="difficultyLevel != null">difficulty_level = #{difficultyLevel},</if>
+            <if test="projectType != null">project_type = #{projectType},</if>
+            <if test="priority != null">priority = #{priority},</if>
+            <if test="preferredExperience != null">preferred_experience = #{preferredExperience},</if>
+            <if test="coverImage != null">cover_image = #{coverImage},</if>
+            <if test="requirementDetails != null">requirement_details = #{requirementDetails},</if>
+            <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
             <if test="status != null">status = #{status},</if>
             <if test="confirmedFreelancerId != null">confirmed_freelancer_id = #{confirmedFreelancerId},</if>
             <if test="paidAmount != null">paid_amount = #{paidAmount},</if>

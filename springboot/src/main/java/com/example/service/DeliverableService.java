@@ -46,6 +46,10 @@ public class DeliverableService {
     private MessageService messageService;
     @Resource
     private NotificationService notificationService;
+    @Resource
+    private FreelancerService freelancerService;
+    @Resource
+    private FreelancerProjectHistoryService freelancerProjectHistoryService;
 
     /**
      * 提交成品
@@ -181,11 +185,20 @@ public class DeliverableService {
                 // 增加完成项目数
                 freelancer.setCompletedProjects(
                         freelancer.getCompletedProjects() != null ? freelancer.getCompletedProjects() + 1 : 1);
+                freelancerMapper.updateById(freelancer);
+                
+                // 更新经验等级
+                freelancerService.updateExperienceLevel(freelancer.getId());
+                
                 // 付款给接单者
                 paymentService.payCompletionPayment(deliverable.getProjectId());
                 // 将项目状态改为已完成
                 project.setStatus("COMPLETED");
                 projectMapper.updateById(project);
+                
+                // 记录历史战绩
+                freelancerProjectHistoryService.addHistory(freelancer.getId(), project.getId());
+                
                 // 通知接单者
                 if (freelancer.getUserId() != null) {
                     notificationService.sendIndividualNotification("PROJECT_STATUS_CHANGE", freelancer.getUserId(), "FREELANCER",

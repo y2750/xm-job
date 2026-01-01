@@ -5,6 +5,24 @@
         <h2>{{ project.title }}</h2>
       </template>
       
+      <!-- 封面图 -->
+      <div v-if="project.coverImage" style="margin-bottom: 20px; border-radius: 8px; overflow: hidden">
+        <img :src="project.coverImage" :alt="project.title" style="width: 100%; max-height: 400px; object-fit: cover" />
+      </div>
+      
+      <!-- 项目类型和难度标签 -->
+      <div style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap">
+        <a-tag v-if="project.projectType" :color="getProjectTypeColor(project.projectType)">
+          {{ getProjectTypeText(project.projectType) }}
+        </a-tag>
+        <a-tag v-if="project.difficultyLevel" :color="getDifficultyColor(project.difficultyLevel)">
+          {{ getDifficultyText(project.difficultyLevel) }}
+        </a-tag>
+        <a-tag v-if="project.preferredExperience && project.preferredExperience !== 'BOTH'" color="orange">
+          {{ project.preferredExperience === 'NEWBIE' ? '偏向新手' : '偏向老手' }}
+        </a-tag>
+      </div>
+      
       <a-descriptions :column="2" bordered>
         <a-descriptions-item label="发布企业">
           <a-button type="link" @click="handleViewEnterprise" style="padding: 0">
@@ -35,10 +53,37 @@
         <a-descriptions-item label="项目描述" :span="2">
           <div v-html="project.description"></div>
         </a-descriptions-item>
+        <a-descriptions-item label="详细需求说明" :span="2" v-if="project.requirementDetails">
+          <div v-html="project.requirementDetails"></div>
+        </a-descriptions-item>
         <a-descriptions-item label="交付要求" :span="2">
           <div v-html="project.deliveryRequirement"></div>
         </a-descriptions-item>
       </a-descriptions>
+
+      <!-- 项目附件 -->
+      <a-divider>项目附件</a-divider>
+      <div v-if="projectAttachments.length > 0" style="margin-bottom: 20px">
+        <a-list :data-source="projectAttachments" size="small">
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta>
+                <template #title>
+                  <a :href="item.fileUrl" target="_blank" :download="item.fileName">
+                    <FileOutlined /> {{ item.fileName }}
+                  </a>
+                </template>
+                <template #description>
+                  <span style="color: #999; font-size: 12px">
+                    {{ formatFileSize(item.fileSize) }} | {{ item.fileType }}
+                  </span>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </div>
+      <a-empty v-else description="暂无附件" />
 
       <a-divider v-if="userRole === 'EMPLOY'">项目稿件</a-divider>
       <div v-if="userRole === 'EMPLOY' && submissions.length > 0" style="margin-bottom: 20px">
@@ -143,7 +188,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { UserOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, FileOutlined } from '@ant-design/icons-vue'
 import request from '@/utils/request'
 
 const route = useRoute()
@@ -155,6 +200,8 @@ const submissions = ref([])
 const userRole = ref(localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')).role : '')
 const mySubmission = ref(null)
 const canChat = ref(false)
+const projectAttachments = ref([])
+const freelancerInfo = ref(null) // 当前用户的自由职业者信息
 
 const loadProject = async () => {
   loading.value = true
@@ -167,6 +214,8 @@ const loadProject = async () => {
         // 无论后端是否已设置skillList，都重新处理以确保正确分割中文逗号
         project.value.skillList = project.value.skillsRequired.split(/[,，]/).filter(s => s.trim())
       }
+      // 加载项目附件
+      await loadProjectAttachments()
     } else {
       message.error(res.msg || '加载项目详情失败')
     }
@@ -283,7 +332,7 @@ const handleViewEnterprise = async () => {
   }
 }
 
-const handleStartChat = (submissionIdParam) => {
+const handleStartChat = async (submissionIdParam) => {
   // 如果是企业端，使用传入的submissionId参数
   if (userRole.value === 'EMPLOY' && submissionIdParam) {
     // 跳转到聊天页面，Conversation.vue会自动检查是否存在聊天记录，不存在则创建虚拟聊天项
@@ -291,19 +340,119 @@ const handleStartChat = (submissionIdParam) => {
     return
   }
   
-  // 如果是自由职业者端
-  if (mySubmission.value && mySubmission.value.id) {
-    // 如果有稿件，使用submissionId
-    router.push(`/front/conversation/${mySubmission.value.id}`)
-  } else {
-    // 如果没有稿件，通过projectId跳转（未接单也可以沟通）
-    router.push(`/front/conversation/project/${route.params.id}`)
+  // 如果是自由职业者端，需要检查认证状态
+  if (userRole.value === 'USER') {
+    // 如果还没有加载自由职业者信息，先加载
+    if (!freelancerInfo.value) {
+      try {
+        const res = await request.get('/api/freelancers/profile')
+        if (res.code === '200' && res.data) {
+          freelancerInfo.value = res.data
+        } else {
+          message.error('获取自由职业者信息失败')
+          return
+        }
+      } catch (error) {
+        console.error('获取自由职业者信息失败:', error)
+        message.error('获取自由职业者信息失败，请检查网络连接')
+        return
+      }
+    }
+    
+    // 检查认证状态
+    if (!freelancerInfo.value.verified) {
+      message.warning('您尚未完成认证，无法发起沟通。请先完成认证后再试。')
+      return
+    }
+    
+    // 已认证，可以发起沟通
+    if (mySubmission.value && mySubmission.value.id) {
+      // 如果有稿件，使用submissionId
+      router.push(`/front/conversation/${mySubmission.value.id}`)
+    } else {
+      // 如果没有稿件，通过projectId跳转（未接单也可以沟通）
+      router.push(`/front/conversation/project/${route.params.id}`)
+    }
+  }
+}
+
+const getProjectTypeColor = (type) => {
+  const colors = {
+    'WEB': 'blue',
+    'MOBILE': 'green',
+    'DESIGN': 'purple',
+    'OTHER': 'default'
+  }
+  return colors[type] || 'default'
+}
+
+const getProjectTypeText = (type) => {
+  const texts = {
+    'WEB': '网站开发',
+    'MOBILE': '移动应用',
+    'DESIGN': '设计',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
+}
+
+const getDifficultyColor = (difficulty) => {
+  const colors = {
+    'EASY': 'green',
+    'MEDIUM': 'orange',
+    'HARD': 'red'
+  }
+  return colors[difficulty] || 'default'
+}
+
+const getDifficultyText = (difficulty) => {
+  const texts = {
+    'EASY': '简单',
+    'MEDIUM': '中等',
+    'HARD': '困难'
+  }
+  return texts[difficulty] || difficulty
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+const loadProjectAttachments = async () => {
+  if (!project.value || !project.value.id) return
+  try {
+    const res = await request.get(`/api/projects/${project.value.id}/attachments`)
+    if (res.code === '200') {
+      projectAttachments.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载项目附件失败:', error)
+    projectAttachments.value = []
+  }
+}
+
+// 加载自由职业者信息（仅自由职业者需要）
+const loadFreelancerInfo = async () => {
+  if (userRole.value === 'USER') {
+    try {
+      const res = await request.get('/api/freelancers/profile')
+      if (res.code === '200' && res.data) {
+        freelancerInfo.value = res.data
+      }
+    } catch (error) {
+      console.error('加载自由职业者信息失败:', error)
+    }
   }
 }
 
 onMounted(() => {
   loadProject()
   loadSubmissions()
+  loadFreelancerInfo() // 预加载自由职业者信息
 })
 </script>
 

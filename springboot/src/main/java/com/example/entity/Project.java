@@ -29,7 +29,14 @@ public class Project {
     private LocalDateTime deliveryDeadline; // 成品提交截止时间
     
     private String deliveryRequirement;
-    private String status; // PUBLISHED/CLOSED/CONFIRMED/COMPLETED
+    private String difficultyLevel; // 难度等级：EASY（简单）/MEDIUM（中等）/HARD（困难）
+    private String projectType; // 项目类型：WEB（网站开发）/MOBILE（移动应用）/DESIGN（设计）/OTHER（其他）
+    private String priority; // 优先级：LOW（低）/MEDIUM（中）/HIGH（高）
+    private String preferredExperience; // 偏向经验：NEWBIE（新手）/EXPERIENCED（老手）/BOTH（不限）
+    private String coverImage; // 封面图片URL
+    private String requirementDetails; // 详细需求说明（支持富文本）
+    private String rejectReason; // 打回理由（管理员审核打回时填写）
+    private String status; // PENDING（待审核）/PUBLISHED（已发布）/REJECTED（已打回）/CLOSED（已截止）/CONFIRMED（已确定合作）/COMPLETED（已完成）
     private Integer confirmedFreelancerId;
     private BigDecimal paidAmount; // 已支付金额
     private LocalDateTime createdAt;
@@ -213,6 +220,62 @@ public class Project {
 
     public void setSubmissionCount(Integer submissionCount) {
         this.submissionCount = submissionCount;
+    }
+
+    public String getDifficultyLevel() {
+        return difficultyLevel;
+    }
+
+    public void setDifficultyLevel(String difficultyLevel) {
+        this.difficultyLevel = difficultyLevel;
+    }
+
+    public String getProjectType() {
+        return projectType;
+    }
+
+    public void setProjectType(String projectType) {
+        this.projectType = projectType;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public String getPreferredExperience() {
+        return preferredExperience;
+    }
+
+    public void setPreferredExperience(String preferredExperience) {
+        this.preferredExperience = preferredExperience;
+    }
+
+    public String getCoverImage() {
+        return coverImage;
+    }
+
+    public void setCoverImage(String coverImage) {
+        this.coverImage = coverImage;
+    }
+
+    public String getRequirementDetails() {
+        return requirementDetails;
+    }
+
+    public void setRequirementDetails(String requirementDetails) {
+        this.requirementDetails = requirementDetails;
+    }
+
+    public String getRejectReason() {
+        return rejectReason;
+    }
+
+    public void setRejectReason(String rejectReason) {
+        this.rejectReason = rejectReason;
     }
 }
 

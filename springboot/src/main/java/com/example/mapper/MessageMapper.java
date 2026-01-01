@@ -55,6 +55,44 @@ public interface MessageMapper {
                         "  and (message.sender_id = #{userId} or message.recipient_id = #{userId}) " +
                         "order by message.created_at asc")
         List<Message> selectByProjectId(Integer projectId, Integer userId);
+        
+        /**
+         * 根据项目ID和freelancer的user_id查询消息（用于区分不同自由职业者的聊天）
+         */
+        @Select("select message.*, " +
+                        "project.title as projectTitle, " +
+                        "CASE " +
+                        "  WHEN message.sender_type = 'ENTERPRISE' THEN employ.name " +
+                        "  WHEN message.sender_type = 'FREELANCER' THEN user.name " +
+                        "END as senderName, " +
+                        "CASE " +
+                        "  WHEN message.sender_type = 'ENTERPRISE' THEN employ.avatar " +
+                        "  WHEN message.sender_type = 'FREELANCER' THEN user.avatar " +
+                        "END as senderAvatar, " +
+                        "CASE " +
+                        "  WHEN message.sender_type = 'ENTERPRISE' THEN freelancer_user.name " +
+                        "  WHEN message.sender_type = 'FREELANCER' THEN enterprise_employ.name " +
+                        "END as recipientName, " +
+                        "CASE " +
+                        "  WHEN message.sender_type = 'ENTERPRISE' THEN freelancer_user.avatar " +
+                        "  WHEN message.sender_type = 'FREELANCER' THEN enterprise_employ.avatar " +
+                        "END as recipientAvatar " +
+                        "from message " +
+                        "left join project on message.project_id = project.id " +
+                        "left join employ on message.sender_type = 'ENTERPRISE' and message.sender_id = employ.id " +
+                        "left join user on message.sender_type = 'FREELANCER' and message.sender_id = user.id " +
+                        "left join user freelancer_user on (message.sender_type = 'FREELANCER' and message.sender_id = freelancer_user.id) " +
+                        "  or (message.sender_type = 'ENTERPRISE' and message.recipient_id = freelancer_user.id) " +
+                        "left join freelancer on freelancer_user.id = freelancer.user_id " +
+                        "left join enterprise on project.enterprise_id = enterprise.id " +
+                        "left join employ enterprise_employ on enterprise.employ_id = enterprise_employ.id " +
+                        "where message.project_id = #{projectId} " +
+                        "  and message.submission_id is null " +
+                        "  and (message.sender_id = #{userId} or message.recipient_id = #{userId}) " +
+                        "  and ((message.sender_type = 'FREELANCER' and message.sender_id = #{freelancerUserId}) " +
+                        "    or (message.sender_type = 'ENTERPRISE' and message.recipient_id = #{freelancerUserId})) " +
+                        "order by message.created_at asc")
+        List<Message> selectByProjectIdAndFreelancer(Integer projectId, Integer userId, Integer freelancerUserId);
 
         @Select("select * from message where recipient_id = #{recipientId} and is_read = 0")
         List<Message> selectUnreadByRecipientId(Integer recipientId);
@@ -73,12 +111,28 @@ public interface MessageMapper {
                         "  WHEN message.sender_type = 'FREELANCER' THEN user.avatar " +
                         "END as senderAvatar " +
                         "from message " +
-                        "left join project on message.project_id = project.id " +
+                        "inner join submission on message.submission_id = submission.id " +
+                        "  and submission.id = #{submissionId} " +
+                        "inner join freelancer on submission.freelancer_id = freelancer.id " +
+                        "inner join user freelancer_user on freelancer.user_id = freelancer_user.id " +
+                        "inner join project on submission.project_id = project.id " +
+                        "  and message.project_id = project.id " +
+                        "inner join enterprise on project.enterprise_id = enterprise.id " +
                         "left join employ on message.sender_type = 'ENTERPRISE' and message.sender_id = employ.id " +
                         "left join user on message.sender_type = 'FREELANCER' and message.sender_id = user.id " +
                         "where message.submission_id = #{submissionId} " +
+                        "  and message.submission_id is not null " +
+                        "  and (message.sender_id = #{userId} or message.recipient_id = #{userId}) " +
+                        "  and ( " +
+                        "    (message.sender_type = 'FREELANCER' and message.sender_id = freelancer_user.id) " +
+                        "    or (message.sender_type = 'ENTERPRISE' and message.sender_id = enterprise.employ_id) " +
+                        "  ) " +
+                        "  and ( " +
+                        "    message.recipient_id = freelancer_user.id " +
+                        "    or message.recipient_id = enterprise.employ_id " +
+                        "  ) " +
                         "order by message.created_at asc")
-        List<Message> selectBySubmissionId(Integer submissionId);
+        List<Message> selectBySubmissionId(Integer submissionId, Integer userId);
 
         /**
          * 获取聊天列表（按submission分组，返回每个对话的最新消息）
@@ -136,7 +190,8 @@ public interface MessageMapper {
         List<Message> selectChatList(Integer userId);
 
         /**
-         * 获取聊天列表（按project分组，返回每个对话的最新消息，用于没有submission的聊天）
+         * 获取聊天列表（按project和freelancer分组，返回每个对话的最新消息，用于没有submission的聊天）
+         * 确保每个自由职业者与企业之间的聊天是独立的
          */
         @Select("SELECT m.*, " +
                         "project.title as projectTitle, " +
@@ -164,19 +219,20 @@ public interface MessageMapper {
                         "   AND unread_msg.submission_id IS NULL " +
                         "   AND unread_msg.recipient_id = #{userId} " +
                         "   AND unread_msg.sender_id != #{userId} " +
-                        "   AND unread_msg.is_read = 0) as unreadCount " +
+                        "   AND unread_msg.is_read = 0 " +
+                        "   AND ((unread_msg.sender_type = 'FREELANCER' AND unread_msg.sender_id = freelancer_user.id) " +
+                        "     OR (unread_msg.sender_type = 'ENTERPRISE' AND unread_msg.recipient_id = freelancer_user.id))) as unreadCount " +
                         "FROM message m " +
                         "INNER JOIN ( " +
                         "  SELECT project_id, " +
-                        "    CASE WHEN sender_type = 'FREELANCER' THEN sender_id ELSE recipient_id END as freelancer_user_id, "
-                        +
-                        "    CASE WHEN sender_type = 'ENTERPRISE' THEN sender_id ELSE recipient_id END as enterprise_user_id, "
-                        +
+                        "    CASE WHEN sender_type = 'FREELANCER' THEN sender_id ELSE recipient_id END as freelancer_user_id, " +
+                        "    CASE WHEN sender_type = 'ENTERPRISE' THEN sender_id ELSE recipient_id END as enterprise_user_id, " +
                         "    MAX(created_at) as max_created_at " +
                         "  FROM message " +
                         "  WHERE submission_id IS NULL " +
                         "    AND project_id IS NOT NULL " +
                         "    AND sender_id != 0 " +
+                        "    AND sender_id IS NOT NULL " +
                         "    AND (sender_id = #{userId} OR recipient_id = #{userId}) " +
                         "  GROUP BY project_id, " +
                         "    CASE WHEN sender_type = 'FREELANCER' THEN sender_id ELSE recipient_id END, " +
@@ -188,8 +244,7 @@ public interface MessageMapper {
                         "LEFT JOIN project ON m.project_id = project.id " +
                         "LEFT JOIN employ ON m.sender_type = 'ENTERPRISE' AND m.sender_id = employ.id " +
                         "LEFT JOIN user ON m.sender_type = 'FREELANCER' AND m.sender_id = user.id " +
-                        "LEFT JOIN user freelancer_user ON (m.sender_type = 'FREELANCER' AND m.sender_id = freelancer_user.id) "
-                        +
+                        "LEFT JOIN user freelancer_user ON (m.sender_type = 'FREELANCER' AND m.sender_id = freelancer_user.id) " +
                         "  OR (m.sender_type = 'ENTERPRISE' AND m.recipient_id = freelancer_user.id) " +
                         "LEFT JOIN freelancer ON freelancer_user.id = freelancer.user_id " +
                         "LEFT JOIN enterprise ON project.enterprise_id = enterprise.id " +

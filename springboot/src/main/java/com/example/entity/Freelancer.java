@@ -25,6 +25,10 @@ public class Freelancer {
     private BigDecimal rating;
     private Integer completedProjects;
     private Integer creditScore; // 信誉分（默认100分）
+    private String experienceLevel; // 经验等级：NEWBIE（新手，0-2个项目）/JUNIOR（初级，3-5个）/SENIOR（高级，6-10个）/EXPERT（专家，10+个）
+    private BigDecimal basePricePerHour; // 基础时薪（用于价格体系）
+    private BigDecimal minProjectBudget; // 最低接单预算
+    private BigDecimal maxProjectBudget; // 最高接单预算
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -168,6 +172,38 @@ public class Freelancer {
 
     public void setUserPhone(String userPhone) {
         this.userPhone = userPhone;
+    }
+
+    public String getExperienceLevel() {
+        return experienceLevel;
+    }
+
+    public void setExperienceLevel(String experienceLevel) {
+        this.experienceLevel = experienceLevel;
+    }
+
+    public BigDecimal getBasePricePerHour() {
+        return basePricePerHour;
+    }
+
+    public void setBasePricePerHour(BigDecimal basePricePerHour) {
+        this.basePricePerHour = basePricePerHour;
+    }
+
+    public BigDecimal getMinProjectBudget() {
+        return minProjectBudget;
+    }
+
+    public void setMinProjectBudget(BigDecimal minProjectBudget) {
+        this.minProjectBudget = minProjectBudget;
+    }
+
+    public BigDecimal getMaxProjectBudget() {
+        return maxProjectBudget;
+    }
+
+    public void setMaxProjectBudget(BigDecimal maxProjectBudget) {
+        this.maxProjectBudget = maxProjectBudget;
     }
 }
 

@@ -90,6 +90,25 @@ public class ProjectController {
         projectService.updateStatus(id, status);
         return Result.success();
     }
+    
+    /**
+     * 管理员审核通过项目
+     */
+    @PutMapping("/{id}/approve")
+    public Result approveProject(@PathVariable Integer id) {
+        projectService.approveProject(id);
+        return Result.success();
+    }
+    
+    /**
+     * 管理员打回项目
+     */
+    @PutMapping("/{id}/reject")
+    public Result rejectProject(@PathVariable Integer id, @RequestBody java.util.Map<String, String> params) {
+        String rejectReason = params.get("rejectReason");
+        projectService.rejectProject(id, rejectReason);
+        return Result.success();
+    }
 
     /**
      * 获取项目的所有稿件
@@ -197,6 +216,34 @@ public class ProjectController {
         
         java.util.Map<String, Object> result = projectService.updateByIdWithPayment(project, paymentMethod);
         return Result.success(result);
+    }
+    
+    /**
+     * 获取项目的附件列表
+     */
+    @GetMapping("/{id}/attachments")
+    public Result getProjectAttachments(@PathVariable Integer id) {
+        List<com.example.entity.ProjectAttachment> list = projectService.getProjectAttachments(id);
+        return Result.success(list);
+    }
+    
+    /**
+     * 添加项目附件
+     */
+    @PostMapping("/{id}/attachments")
+    public Result addProjectAttachment(@PathVariable Integer id, @RequestBody com.example.entity.ProjectAttachment attachment) {
+        attachment.setProjectId(id);
+        projectService.addProjectAttachment(attachment);
+        return Result.success();
+    }
+    
+    /**
+     * 删除项目附件
+     */
+    @DeleteMapping("/attachments/{attachmentId}")
+    public Result deleteProjectAttachment(@PathVariable Integer attachmentId) {
+        projectService.deleteProjectAttachment(attachmentId);
+        return Result.success();
     }
 }
 

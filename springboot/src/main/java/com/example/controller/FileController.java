@@ -37,11 +37,17 @@ public class FileController {
      */
     @PostMapping("/upload")
     public Result upload(MultipartFile file) {
-        log.info("开始上传文件: fileName={}, fileSize={}", file.getOriginalFilename(), file.getSize());
+        log.info("开始上传文件: fileName={}, fileSize={}, contentType={}", file.getOriginalFilename(), file.getSize(), file.getContentType());
         try {
+            // 验证文件类型（如果是证书上传，只允许图片）
+            if (file.getContentType() != null && !file.getContentType().startsWith("image/")) {
+                log.warn("文件类型不符合要求: fileName={}, contentType={}", file.getOriginalFilename(), file.getContentType());
+                return Result.error("只能上传图片文件！");
+            }
+            
             // 上传到COS
             String url = fileUploadService.uploadFile(file, "files");
-            log.info("文件上传成功: fileName={}, url={}", file.getOriginalFilename(), url);
+            log.info("文件上传COS成功: fileName={}, url={}", file.getOriginalFilename(), url);
             return Result.success(url);
         } catch (Exception e) {
             log.error("文件上传失败: fileName={}", file.getOriginalFilename(), e);

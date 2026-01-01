@@ -11,9 +11,12 @@
       </a-form-item>
       <a-form-item label="状态">
         <a-select v-model:value="searchForm.status" placeholder="项目状态" allow-clear style="width: 150px">
+          <a-select-option value="PENDING">待审核</a-select-option>
           <a-select-option value="PUBLISHED">已发布</a-select-option>
+          <a-select-option value="REJECTED">已打回</a-select-option>
           <a-select-option value="CLOSED">已截止</a-select-option>
           <a-select-option value="CONFIRMED">已确定合作</a-select-option>
+          <a-select-option value="COMPLETED">已完成</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item>
@@ -36,10 +39,30 @@
         </template>
         <template v-if="column.key === 'action'">
           <a-button type="link" @click="handleView(record.id)">查看</a-button>
+          <a-button v-if="record.status === 'PENDING'" type="link" style="color: #52c41a" @click="handleApprove(record.id)">审核通过</a-button>
+          <a-button v-if="record.status === 'PENDING'" type="link" danger @click="handleReject(record.id)">打回</a-button>
           <a-button type="link" danger @click="handleDelete(record.id)">删除</a-button>
         </template>
       </template>
     </a-table>
+    
+    <!-- 打回理由弹窗 -->
+    <a-modal
+      v-model:open="rejectModalVisible"
+      title="打回项目"
+      @ok="handleRejectSubmit"
+      @cancel="() => { rejectModalVisible = false; rejectReason = ''; rejectProjectId = null }"
+    >
+      <a-form-item label="打回理由" required>
+        <a-textarea
+          v-model:value="rejectReason"
+          placeholder="请输入打回理由"
+          :rows="4"
+          :maxlength="500"
+          show-count
+        />
+      </a-form-item>
+    </a-modal>
   </a-card>
 </template>
 
@@ -92,18 +115,24 @@ const formatDate = (dateStr) => {
 
 const getStatusColor = (status) => {
   const colors = {
+    'PENDING': 'orange',
     'PUBLISHED': 'green',
-    'CLOSED': 'orange',
-    'CONFIRMED': 'blue'
+    'REJECTED': 'red',
+    'CLOSED': 'default',
+    'CONFIRMED': 'blue',
+    'COMPLETED': 'purple'
   }
   return colors[status] || 'default'
 }
 
 const getStatusText = (status) => {
   const texts = {
+    'PENDING': '待审核',
     'PUBLISHED': '已发布',
+    'REJECTED': '已打回',
     'CLOSED': '已截止',
-    'CONFIRMED': '已确定合作'
+    'CONFIRMED': '已确定合作',
+    'COMPLETED': '已完成'
   }
   return texts[status] || status
 }
@@ -168,6 +197,59 @@ const handleDelete = (id) => {
       }
     }
   })
+}
+
+const handleApprove = (id) => {
+  Modal.confirm({
+    title: '确认审核通过',
+    content: '确定要审核通过此项目吗？',
+    onOk: async () => {
+      try {
+        const res = await request.put(`/api/projects/${id}/approve`)
+        if (res.code === '200') {
+          message.success('审核通过成功')
+          loadProjects()
+        } else {
+          message.error(res.msg || '审核失败')
+        }
+      } catch (error) {
+        message.error('审核失败')
+      }
+    }
+  })
+}
+
+const rejectReason = ref('')
+const rejectModalVisible = ref(false)
+const rejectProjectId = ref(null)
+
+const handleReject = (id) => {
+  rejectProjectId.value = id
+  rejectReason.value = ''
+  rejectModalVisible.value = true
+}
+
+const handleRejectSubmit = async () => {
+  if (!rejectReason.value || !rejectReason.value.trim()) {
+    message.error('请输入打回理由')
+    return
+  }
+  try {
+    const res = await request.put(`/api/projects/${rejectProjectId.value}/reject`, {
+      rejectReason: rejectReason.value
+    })
+    if (res.code === '200') {
+      message.success('打回成功')
+      rejectModalVisible.value = false
+      rejectReason.value = ''
+      rejectProjectId.value = null
+      loadProjects()
+    } else {
+      message.error(res.msg || '打回失败')
+    }
+  } catch (error) {
+    message.error('打回失败')
+  }
 }
 
 onMounted(() => {

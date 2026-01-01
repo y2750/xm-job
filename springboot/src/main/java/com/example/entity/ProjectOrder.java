@@ -37,6 +37,11 @@ public class ProjectOrder {
     private String projectStatus; // 项目状态
     private String freelancerName;
     private String freelancerAvatar;
+    private String freelancerExperienceLevel; // 自由职业者经验等级
+    private Integer freelancerCompletedProjects; // 自由职业者完成项目数
+    private java.math.BigDecimal freelancerRating; // 自由职业者评分
+    private Integer freelancerCreditScore; // 自由职业者信誉分
+    private String freelancerSkills; // 自由职业者技能
 
     public Integer getId() {
         return id;
@@ -140,6 +145,46 @@ public class ProjectOrder {
 
     public void setProjectStatus(String projectStatus) {
         this.projectStatus = projectStatus;
+    }
+
+    public String getFreelancerExperienceLevel() {
+        return freelancerExperienceLevel;
+    }
+
+    public void setFreelancerExperienceLevel(String freelancerExperienceLevel) {
+        this.freelancerExperienceLevel = freelancerExperienceLevel;
+    }
+
+    public Integer getFreelancerCompletedProjects() {
+        return freelancerCompletedProjects;
+    }
+
+    public void setFreelancerCompletedProjects(Integer freelancerCompletedProjects) {
+        this.freelancerCompletedProjects = freelancerCompletedProjects;
+    }
+
+    public java.math.BigDecimal getFreelancerRating() {
+        return freelancerRating;
+    }
+
+    public void setFreelancerRating(java.math.BigDecimal freelancerRating) {
+        this.freelancerRating = freelancerRating;
+    }
+
+    public Integer getFreelancerCreditScore() {
+        return freelancerCreditScore;
+    }
+
+    public void setFreelancerCreditScore(Integer freelancerCreditScore) {
+        this.freelancerCreditScore = freelancerCreditScore;
+    }
+
+    public String getFreelancerSkills() {
+        return freelancerSkills;
+    }
+
+    public void setFreelancerSkills(String freelancerSkills) {
+        this.freelancerSkills = freelancerSkills;
     }
 }
 

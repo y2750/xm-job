@@ -17,3 +17,18 @@ public interface NotificationReadMapper {
     void deleteByNotificationId(Integer notificationId);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

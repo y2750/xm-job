@@ -55,6 +55,10 @@ public class ProjectService {
     private AccountBalanceMapper accountBalanceMapper;
     @Resource
     private PaymentRecordMapper paymentRecordMapper;
+    @Resource
+    private com.example.mapper.AdminMapper adminMapper;
+    @Resource
+    private com.example.mapper.ProjectAttachmentMapper projectAttachmentMapper;
 
     /**
      * 发布项目
@@ -84,10 +88,41 @@ public class ProjectService {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR, "企业未认证，无法发布项目，请先完善企业信息并等待审核");
         }
         
+        // 验证项目描述字数（至少20个字，不包含空格和符号）
+        if (project.getDescription() != null) {
+            String desc = project.getDescription().replaceAll("[\\s\\p{P}]", "");
+            if (desc.length() < 20) {
+                throw new CustomException(ResultCodeEnum.PARAM_ERROR, "项目描述至少需要20个字（不包含空格和符号）");
+            }
+        }
+        
+        // 验证详细需求说明字数（至少50个字，不包含空格和符号）
+        if (project.getRequirementDetails() != null && !project.getRequirementDetails().trim().isEmpty()) {
+            String details = project.getRequirementDetails().replaceAll("[\\s\\p{P}]", "");
+            if (details.length() < 50) {
+                throw new CustomException(ResultCodeEnum.PARAM_ERROR, "详细需求说明至少需要50个字（不包含空格和符号）");
+            }
+        }
+        
         project.setEnterpriseId(enterprise.getId());
-        project.setStatus("PUBLISHED");
+        project.setStatus("PENDING"); // 改为待审核状态，等待管理员审核
         project.setCreatedAt(LocalDateTime.now());
         projectMapper.insert(project);
+        
+        // 通知所有管理员有新项目发布
+        List<com.example.entity.Admin> admins = adminMapper.selectAll(new com.example.entity.Admin());
+        for (com.example.entity.Admin admin : admins) {
+            notificationService.sendIndividualNotification(
+                "PROJECT_STATUS_CHANGE",
+                admin.getId(),
+                "ADMIN",
+                "新项目待审核",
+                "企业发布了新项目《" + project.getTitle() + "》，请及时审核。",
+                project.getId(),
+                null,
+                null
+            );
+        }
         
         // 支付发布保证金（从请求参数中获取支付方式，默认为在线支付）
         String paymentMethod = project.getPaymentMethod();
@@ -210,6 +245,27 @@ public class ProjectService {
         }
         return project;
     }
+    
+    /**
+     * 获取项目的附件列表
+     */
+    public List<com.example.entity.ProjectAttachment> getProjectAttachments(Integer projectId) {
+        return projectAttachmentMapper.selectByProjectId(projectId);
+    }
+    
+    /**
+     * 添加项目附件
+     */
+    public void addProjectAttachment(com.example.entity.ProjectAttachment attachment) {
+        projectAttachmentMapper.insert(attachment);
+    }
+    
+    /**
+     * 删除项目附件
+     */
+    public void deleteProjectAttachment(Integer attachmentId) {
+        projectAttachmentMapper.deleteById(attachmentId);
+    }
 
     /**
      * 查询所有（支持筛选）
@@ -228,12 +284,77 @@ public class ProjectService {
     }
 
     /**
-     * 分页查询
+     * 分页查询（支持智能推荐）
      */
     public PageInfo<Project> selectPage(Project project, Integer pageNum, Integer pageSize) {
         PageHelper.startPage(pageNum, pageSize);
         List<Project> list = selectAll(project);
+        
+        // 如果是自由职业者查看项目列表，进行智能推荐排序
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser != null && "USER".equals(currentUser.getRole())) {
+            try {
+                com.example.entity.Freelancer freelancer = freelancerMapper.selectByUserId(currentUser.getId());
+                if (freelancer != null && freelancer.getExperienceLevel() != null) {
+                    // 根据经验等级和项目偏好进行排序
+                    final String experienceLevel = freelancer.getExperienceLevel();
+                    list.sort((p1, p2) -> {
+                        int score1 = calculateMatchScore(p1, experienceLevel);
+                        int score2 = calculateMatchScore(p2, experienceLevel);
+                        return Integer.compare(score2, score1); // 降序排列
+                    });
+                }
+            } catch (Exception e) {
+                // 如果获取自由职业者信息失败，不影响正常查询
+            }
+        }
+        
         return PageInfo.of(list);
+    }
+    
+    /**
+     * 计算项目与自由职业者的匹配分数
+     * @param project 项目
+     * @param experienceLevel 自由职业者经验等级
+     * @return 匹配分数（越高越匹配）
+     */
+    private int calculateMatchScore(Project project, String experienceLevel) {
+        int score = 0;
+        
+        // 经验匹配度（40分）
+        String preferredExperience = project.getPreferredExperience();
+        if ("BOTH".equals(preferredExperience)) {
+            score += 40;
+        } else if ("NEWBIE".equals(preferredExperience) && "NEWBIE".equals(experienceLevel)) {
+            score += 40;
+        } else if ("EXPERIENCED".equals(preferredExperience) && 
+                   ("JUNIOR".equals(experienceLevel) || "SENIOR".equals(experienceLevel) || "EXPERT".equals(experienceLevel))) {
+            score += 40;
+        } else if ("NEWBIE".equals(preferredExperience) && !"NEWBIE".equals(experienceLevel)) {
+            score += 10; // 老手也可以接新手项目，但匹配度较低
+        } else if ("EXPERIENCED".equals(preferredExperience) && "NEWBIE".equals(experienceLevel)) {
+            score += 5; // 新手接老手项目，匹配度很低
+        }
+        
+        // 难度匹配度（30分）
+        String difficultyLevel = project.getDifficultyLevel();
+        if ("EASY".equals(difficultyLevel) && "NEWBIE".equals(experienceLevel)) {
+            score += 30;
+        } else if ("MEDIUM".equals(difficultyLevel) && 
+                   ("JUNIOR".equals(experienceLevel) || "SENIOR".equals(experienceLevel))) {
+            score += 30;
+        } else if ("HARD".equals(difficultyLevel) && 
+                   ("SENIOR".equals(experienceLevel) || "EXPERT".equals(experienceLevel))) {
+            score += 30;
+        } else if (difficultyLevel == null || "MEDIUM".equals(difficultyLevel)) {
+            score += 20; // 默认中等难度，给中等分数
+        }
+        
+        // 时间因素（30分）- 新发布的项目优先
+        // 这里可以根据created_at计算，但为了简化，给所有项目相同的基础分
+        score += 30;
+        
+        return score;
     }
 
     /**
@@ -253,6 +374,74 @@ public class ProjectService {
         
         project.setStatus(status);
         projectMapper.updateById(project);
+    }
+    
+    /**
+     * 管理员审核通过项目
+     */
+    @Transactional
+    public void approveProject(Integer id) {
+        Project project = projectMapper.selectById(id);
+        if (project == null) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR, "项目不存在");
+        }
+        if (!"PENDING".equals(project.getStatus())) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR, "只有待审核状态的项目才能审核");
+        }
+        
+        project.setStatus("PUBLISHED");
+        projectMapper.updateById(project);
+        
+        // 通知企业项目已通过审核
+        Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
+        if (enterprise != null && enterprise.getEmployId() != null) {
+            notificationService.sendIndividualNotification(
+                "PROJECT_STATUS_CHANGE",
+                enterprise.getEmployId(),
+                "ENTERPRISE",
+                "项目审核通过",
+                "您的项目《" + project.getTitle() + "》已通过审核，现已发布。",
+                project.getId(),
+                null,
+                null
+            );
+        }
+    }
+    
+    /**
+     * 管理员打回项目
+     */
+    @Transactional
+    public void rejectProject(Integer id, String rejectReason) {
+        Project project = projectMapper.selectById(id);
+        if (project == null) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR, "项目不存在");
+        }
+        if (!"PENDING".equals(project.getStatus())) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR, "只有待审核状态的项目才能打回");
+        }
+        if (rejectReason == null || rejectReason.trim().isEmpty()) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR, "打回理由不能为空");
+        }
+        
+        project.setStatus("REJECTED");
+        project.setRejectReason(rejectReason);
+        projectMapper.updateById(project);
+        
+        // 通知企业项目已被打回
+        Enterprise enterprise = enterpriseMapper.selectById(project.getEnterpriseId());
+        if (enterprise != null && enterprise.getEmployId() != null) {
+            notificationService.sendIndividualNotification(
+                "PROJECT_STATUS_CHANGE",
+                enterprise.getEmployId(),
+                "ENTERPRISE",
+                "项目审核未通过",
+                "您的项目《" + project.getTitle() + "》审核未通过。打回理由：" + rejectReason + "。请修改后重新提交。",
+                project.getId(),
+                null,
+                null
+            );
+        }
     }
 
     /**

@@ -81,6 +81,47 @@
         {{ freelancerDetail.updatedAt }}
       </a-descriptions-item>
     </a-descriptions>
+    
+    <!-- 证书管理 -->
+    <a-divider>证书管理</a-divider>
+    <a-spin :spinning="loadingCertificates">
+      <div v-if="freelancerCertificates.length > 0">
+        <a-list :data-source="freelancerCertificates" :grid="{ gutter: 16, xs: 1, sm: 2, md: 2 }" bordered>
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-card hoverable size="small">
+                <template #cover v-if="item.certificateUrl">
+                  <img :src="item.certificateUrl" :alt="item.certificateName" style="height: 120px; object-fit: cover; cursor: pointer" @click="window.open(item.certificateUrl, '_blank')" />
+                </template>
+                <a-card-meta>
+                  <template #title>
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>{{ item.certificateName }}</span>
+                      <a-tag :color="item.verified ? 'green' : 'orange'">
+                        {{ item.verified ? '已认证' : '未认证' }}
+                      </a-tag>
+                    </div>
+                  </template>
+                  <template #description>
+                    <div style="font-size: 12px; color: #666">
+                      <div v-if="item.certificateType">类型：{{ getCertificateTypeText(item.certificateType) }}</div>
+                      <div v-if="item.issuingOrganization">颁发机构：{{ item.issuingOrganization }}</div>
+                      <div v-if="item.issueDate">颁发日期：{{ item.issueDate }}</div>
+                    </div>
+                    <div style="margin-top: 8px">
+                      <a-button size="small" :type="item.verified ? 'default' : 'primary'" @click="handleUpdateCertificateStatus(item.id, !item.verified)">
+                        {{ item.verified ? '取消认证' : '认证' }}
+                      </a-button>
+                    </div>
+                  </template>
+                </a-card-meta>
+              </a-card>
+            </a-list-item>
+          </template>
+        </a-list>
+      </div>
+      <a-empty v-else description="暂无证书" />
+    </a-spin>
   </a-modal>
 </template>
 
@@ -163,18 +204,58 @@ const handleReset = () => {
 const freelancerDetail = ref(null)
 const detailVisible = ref(false)
 
+const freelancerCertificates = ref([])
+const loadingCertificates = ref(false)
+
 const handleView = async (id) => {
   try {
     const res = await request.get(`/api/freelancers/${id}`)
     if (res.code === '200') {
       freelancerDetail.value = res.data
       detailVisible.value = true
+      
+      // 加载证书列表
+      loadingCertificates.value = true
+      try {
+        const certRes = await request.get(`/api/certificates/freelancer/${id}`)
+        if (certRes.code === '200' && certRes.data) {
+          freelancerCertificates.value = certRes.data
+        }
+      } catch (error) {
+        console.error('加载证书失败:', error)
+        freelancerCertificates.value = []
+      } finally {
+        loadingCertificates.value = false
+      }
     } else {
       message.error(res.msg || '获取自由职业者详情失败')
     }
   } catch (error) {
     console.error('获取自由职业者详情失败:', error)
     message.error('获取自由职业者详情失败')
+  }
+}
+
+const handleUpdateCertificateStatus = async (certificateId, verified) => {
+  try {
+    const res = await request.put(`/api/certificates/${certificateId}`, {
+      verified: verified
+    })
+    if (res.code === '200') {
+      message.success(verified ? '证书已认证' : '证书已取消认证')
+      // 重新加载证书列表
+      if (freelancerDetail.value && freelancerDetail.value.id) {
+        const certRes = await request.get(`/api/certificates/freelancer/${freelancerDetail.value.id}`)
+        if (certRes.code === '200' && certRes.data) {
+          freelancerCertificates.value = certRes.data
+        }
+      }
+    } else {
+      message.error(res.msg || '更新证书状态失败')
+    }
+  } catch (error) {
+    console.error('更新证书状态失败:', error)
+    message.error('更新证书状态失败')
   }
 }
 
@@ -231,7 +312,25 @@ const handleUnverify = async (id) => {
   })
 }
 
+const getCertificateTypeText = (type) => {
+  if (!type) return '-'
+  const texts = {
+    'DEGREE': '学历证书',
+    'PROFESSIONAL': '职业证书',
+    'AWARD': '获奖证书',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
+}
+
+// 监听来自通知页面的查看自由职业者详情事件
 onMounted(() => {
+  window.addEventListener('viewFreelancerDetail', (event) => {
+    const freelancerId = event.detail?.freelancerId
+    if (freelancerId) {
+      handleView(freelancerId)
+    }
+  })
   loadFreelancers()
 })
 </script>

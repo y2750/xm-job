@@ -182,9 +182,30 @@
                 </a>
               </template>
               <template #description>
-                <div class="order-time">
-                  <ClockCircleOutlined />
-                  接单时间：{{ formatDate(item.acceptedAt) }}
+                <div class="order-info">
+                  <div class="order-time">
+                    <ClockCircleOutlined />
+                    接单时间：{{ formatDate(item.acceptedAt) }}
+                  </div>
+                  <div class="freelancer-stats" style="margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap">
+                    <a-tag v-if="item.freelancerExperienceLevel" :color="getExperienceLevelColor(item.freelancerExperienceLevel)">
+                      经验等级：{{ getExperienceLevelText(item.freelancerExperienceLevel) }}
+                    </a-tag>
+                    <span v-if="item.freelancerCompletedProjects !== null && item.freelancerCompletedProjects !== undefined">
+                      完成项目：{{ item.freelancerCompletedProjects }}个
+                    </span>
+                    <span v-if="item.freelancerRating !== null && item.freelancerRating !== undefined">
+                      评分：{{ item.freelancerRating }}分
+                    </span>
+                    <span v-if="item.freelancerCreditScore !== null && item.freelancerCreditScore !== undefined" style="color: #52c41a; font-weight: bold">
+                      信誉分：{{ item.freelancerCreditScore }}分
+                    </span>
+                  </div>
+                  <div v-if="item.freelancerSkills" style="margin-top: 8px">
+                    <a-tag v-for="skill in (item.freelancerSkills.split(/[,，]/).filter(s => s.trim())).slice(0, 5)" :key="skill" style="margin-right: 4px; margin-bottom: 4px">
+                      {{ skill }}
+                    </a-tag>
+                  </div>
                 </div>
               </template>
             </a-list-item-meta>
@@ -224,6 +245,14 @@
             </div>
           </div>
           <a-descriptions :column="1" bordered class="freelancer-descriptions">
+            <a-descriptions-item label="经验等级">
+              <a-tag :color="getExperienceLevelColor(freelancerDetail.experienceLevel)">
+                {{ getExperienceLevelText(freelancerDetail.experienceLevel) }}
+              </a-tag>
+            </a-descriptions-item>
+            <a-descriptions-item label="完成项目数量">
+              {{ freelancerDetail.completedProjects || 0 }} 个
+            </a-descriptions-item>
             <a-descriptions-item label="技能标签">
               <div class="skills-tags">
                 <a-tag 
@@ -245,6 +274,175 @@
             </a-descriptions-item>
             <a-descriptions-item label="邮箱">{{ freelancerDetail.userEmail || '-' }}</a-descriptions-item>
             <a-descriptions-item label="电话">{{ freelancerDetail.userPhone || '-' }}</a-descriptions-item>
+          </a-descriptions>
+          
+          <!-- 完成项目详情 -->
+          <div v-if="freelancerProjectHistory.length > 0" style="margin-top: 24px">
+            <h4 style="margin-bottom: 12px">完成项目详情</h4>
+            <a-list :data-source="freelancerProjectHistory" size="small" bordered>
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <a-list-item-meta>
+                    <template #title>
+                      <a @click="handleViewProjectDetail(item.projectId, item)">{{ item.projectTitle }}</a>
+                    </template>
+                    <template #description>
+                      <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px">
+                        <span>成交价格：<strong style="color: #00a6a7">¥{{ item.projectBudget }}</strong></span>
+                        <span>完成时间：{{ formatDate(item.completionDate) }}</span>
+                        <span v-if="item.enterpriseRating !== null && item.enterpriseRating !== undefined">
+                          企业评分：<a-rate :value="item.enterpriseRating" disabled />
+                        </span>
+                      </div>
+                      <div v-if="item.enterpriseComment" style="margin-top: 8px; color: #666">
+                        企业评价：{{ item.enterpriseComment }}
+                      </div>
+                    </template>
+                  </a-list-item-meta>
+                </a-list-item>
+              </template>
+            </a-list>
+          </div>
+          
+          <!-- 证书详情 -->
+          <div v-if="freelancerCertificates.length > 0" style="margin-top: 24px">
+            <h4 style="margin-bottom: 12px">证书详情</h4>
+            <a-list :data-source="freelancerCertificates" :grid="{ gutter: 16, xs: 1, sm: 2, md: 2 }" bordered>
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <a-card hoverable size="small">
+                    <template #cover v-if="item.certificateUrl">
+                      <img :src="item.certificateUrl" :alt="item.certificateName" style="height: 120px; object-fit: cover" />
+                    </template>
+                    <a-card-meta>
+                      <template #title>
+                        <div style="display: flex; justify-content: space-between; align-items: center">
+                          <span>{{ item.certificateName }}</span>
+                          <a-tag v-if="item.verified" color="green">已认证</a-tag>
+                        </div>
+                      </template>
+                      <template #description>
+                        <div style="font-size: 12px; color: #666">
+                          <div v-if="item.certificateType">类型：{{ getCertificateTypeText(item.certificateType) }}</div>
+                          <div v-if="item.issuingOrganization">颁发机构：{{ item.issuingOrganization }}</div>
+                          <div v-if="item.issueDate">颁发日期：{{ item.issueDate }}</div>
+                        </div>
+                      </template>
+                    </a-card-meta>
+                  </a-card>
+                </a-list-item>
+              </template>
+            </a-list>
+          </div>
+        </div>
+      </a-spin>
+    </a-modal>
+    
+    <!-- 项目详情弹窗 -->
+    <a-modal
+      v-model:open="projectDetailVisible"
+      title="项目详情"
+      width="800px"
+      :footer="null"
+    >
+      <a-spin :spinning="loadingProjectDetail">
+        <div v-if="projectDetail" style="padding: 10px 0">
+          <!-- 封面图片 -->
+          <div v-if="projectDetail.coverImage" style="margin-bottom: 20px; text-align: center">
+            <img 
+              :src="projectDetail.coverImage" 
+              alt="项目封面" 
+              style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1)"
+            />
+          </div>
+          
+          <a-descriptions :column="1" bordered>
+            <a-descriptions-item label="项目标题">
+              <strong style="font-size: 16px">{{ projectDetail.title }}</strong>
+            </a-descriptions-item>
+            
+            <!-- 成交价格（从项目历史记录中获取） -->
+            <a-descriptions-item v-if="currentProjectHistory" label="成交价格">
+              <span style="color: #00a6a7; font-size: 18px; font-weight: bold">
+                ¥{{ currentProjectHistory.projectBudget }}
+              </span>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="预算范围">
+              ¥{{ projectDetail.budgetMin }} - ¥{{ projectDetail.budgetMax }}
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="项目描述">
+              <div v-html="projectDetail.description" style="line-height: 1.8"></div>
+            </a-descriptions-item>
+            
+            <a-descriptions-item v-if="projectDetail.requirementDetails" label="详细需求说明">
+              <div v-html="projectDetail.requirementDetails" style="line-height: 1.8; max-height: 300px; overflow-y: auto"></div>
+            </a-descriptions-item>
+            
+            <a-descriptions-item v-if="projectDetail.deliveryRequirement" label="交付要求">
+              <div style="line-height: 1.8; white-space: pre-wrap">{{ projectDetail.deliveryRequirement }}</div>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="所需技能">
+              <a-tag 
+                v-for="skill in (projectDetail.skillsRequired ? projectDetail.skillsRequired.split(/[,，]/).filter(s => s.trim()) : [])" 
+                :key="skill" 
+                color="blue"
+                style="margin-right: 8px; margin-bottom: 4px"
+              >
+                {{ skill }}
+              </a-tag>
+              <span v-if="!projectDetail.skillsRequired">-</span>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="难度等级">
+              <a-tag :color="getDifficultyColor(projectDetail.difficultyLevel)">
+                {{ getDifficultyText(projectDetail.difficultyLevel) }}
+              </a-tag>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="项目类型">
+              <a-tag>{{ getProjectTypeText(projectDetail.projectType) }}</a-tag>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="经验偏好">
+              <a-tag :color="projectDetail.preferredExperience === 'NEWBIE' ? 'green' : projectDetail.preferredExperience === 'EXPERIENCED' ? 'orange' : 'blue'">
+                {{ projectDetail.preferredExperience === 'NEWBIE' ? '新手' : projectDetail.preferredExperience === 'EXPERIENCED' ? '老手' : '不限' }}
+              </a-tag>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="优先级">
+              <a-tag :color="projectDetail.priority === 'HIGH' ? 'red' : projectDetail.priority === 'MEDIUM' ? 'orange' : 'default'">
+                {{ projectDetail.priority === 'HIGH' ? '高' : projectDetail.priority === 'MEDIUM' ? '中' : '低' }}
+              </a-tag>
+            </a-descriptions-item>
+            
+            <a-descriptions-item label="截止时间">
+              {{ formatDate(projectDetail.deadline) }}
+            </a-descriptions-item>
+            
+            <a-descriptions-item v-if="projectDetail.deliveryDeadline" label="交付截止时间">
+              {{ formatDate(projectDetail.deliveryDeadline) }}
+            </a-descriptions-item>
+            
+            <!-- 项目历史记录中的评价信息 -->
+            <a-descriptions-item v-if="currentProjectHistory && currentProjectHistory.enterpriseRating" label="企业评分">
+              <a-rate :value="currentProjectHistory.enterpriseRating" disabled />
+              <span style="margin-left: 8px; color: #666">
+                ({{ currentProjectHistory.enterpriseRating }}分)
+              </span>
+            </a-descriptions-item>
+            
+            <a-descriptions-item v-if="currentProjectHistory && currentProjectHistory.enterpriseComment" label="企业评价">
+              <div style="line-height: 1.8; color: #666; padding: 8px; background: #f5f5f5; border-radius: 4px">
+                {{ currentProjectHistory.enterpriseComment }}
+              </div>
+            </a-descriptions-item>
+            
+            <a-descriptions-item v-if="currentProjectHistory && currentProjectHistory.completionDate" label="完成时间">
+              {{ formatDate(currentProjectHistory.completionDate) }}
+            </a-descriptions-item>
           </a-descriptions>
         </div>
       </a-spin>
@@ -296,6 +494,10 @@ const currentProjectId = ref(null)
 const freelancerDetailVisible = ref(false)
 const loadingFreelancerDetail = ref(false)
 const freelancerDetail = ref(null)
+const projectDetailVisible = ref(false)
+const projectDetail = ref(null)
+const loadingProjectDetail = ref(false)
+const currentProjectHistory = ref(null) // 当前查看的项目历史记录
 
 const columns = [
   { title: '项目标题', dataIndex: 'title', key: 'title', ellipsis: true },
@@ -468,6 +670,9 @@ const handleViewOrders = async (projectId) => {
   }
 }
 
+const freelancerCertificates = ref([])
+const freelancerProjectHistory = ref([])
+
 const handleViewFreelancerDetail = async (freelancerId) => {
   if (!freelancerId) {
     message.warning('自由职业者ID不存在')
@@ -477,9 +682,32 @@ const handleViewFreelancerDetail = async (freelancerId) => {
   freelancerDetailVisible.value = true
   loadingFreelancerDetail.value = true
   try {
+    // 加载自由职业者基本信息
     const res = await request.get(`/api/freelancers/${freelancerId}`)
     if (res.code === '200' && res.data) {
       freelancerDetail.value = res.data
+      
+      // 加载证书信息
+      try {
+        const certRes = await request.get(`/api/certificates/freelancer/${freelancerId}`)
+        if (certRes.code === '200' && certRes.data) {
+          freelancerCertificates.value = certRes.data.filter(c => c.verified) // 只显示已认证的证书
+        }
+      } catch (error) {
+        console.error('加载证书失败:', error)
+        freelancerCertificates.value = []
+      }
+      
+      // 加载项目历史
+      try {
+        const historyRes = await request.get(`/api/project-history/freelancer/${freelancerId}`)
+        if (historyRes.code === '200' && historyRes.data) {
+          freelancerProjectHistory.value = historyRes.data
+        }
+      } catch (error) {
+        console.error('加载项目历史失败:', error)
+        freelancerProjectHistory.value = []
+      }
     } else {
       message.error(res.msg || '加载自由职业者详情失败')
       freelancerDetail.value = null
@@ -518,7 +746,96 @@ const handleStartChat = async (projectId, freelancerId) => {
 
 const formatDate = (date) => {
   if (!date) return '-'
+  if (typeof date === 'string' && date.includes('T')) {
+    return date.replace('T', ' ').substring(0, 19)
+  }
   return dayjs(date).format('YYYY-MM-DD HH:mm')
+}
+
+const handleViewProjectDetail = async (projectId, projectHistory = null) => {
+  if (!projectId) {
+    message.warning('项目ID不存在')
+    return
+  }
+  // 保存当前项目历史记录，用于显示成交价格和评价信息
+  currentProjectHistory.value = projectHistory
+  projectDetailVisible.value = true
+  loadingProjectDetail.value = true
+  try {
+    const res = await request.get(`/api/projects/${projectId}`)
+    if (res.code === '200' && res.data) {
+      projectDetail.value = res.data
+    } else {
+      message.error(res.msg || '加载项目详情失败')
+    }
+  } catch (error) {
+    console.error('加载项目详情失败:', error)
+    message.error('加载项目详情失败')
+  } finally {
+    loadingProjectDetail.value = false
+  }
+}
+
+const getDifficultyText = (level) => {
+  if (!level) return '-'
+  const texts = {
+    'EASY': '简单',
+    'MEDIUM': '中等',
+    'HARD': '困难'
+  }
+  return texts[level] || level
+}
+
+const getDifficultyColor = (level) => {
+  const colors = {
+    'EASY': 'green',
+    'MEDIUM': 'orange',
+    'HARD': 'red'
+  }
+  return colors[level] || 'default'
+}
+
+const getProjectTypeText = (type) => {
+  if (!type) return '-'
+  const texts = {
+    'WEB': '网站开发',
+    'MOBILE': '移动应用',
+    'DESIGN': '设计',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
+}
+
+const getExperienceLevelColor = (level) => {
+  const colors = {
+    'NEWBIE': 'orange',
+    'JUNIOR': 'blue',
+    'SENIOR': 'purple',
+    'EXPERT': 'red'
+  }
+  return colors[level] || 'default'
+}
+
+const getExperienceLevelText = (level) => {
+  if (!level) return '未知'
+  const texts = {
+    'NEWBIE': '新手',
+    'JUNIOR': '初级',
+    'SENIOR': '高级',
+    'EXPERT': '专家'
+  }
+  return texts[level] || level
+}
+
+const getCertificateTypeText = (type) => {
+  if (!type) return '-'
+  const texts = {
+    'DEGREE': '学历证书',
+    'PROFESSIONAL': '职业证书',
+    'AWARD': '获奖证书',
+    'OTHER': '其他'
+  }
+  return texts[type] || type
 }
 
 onMounted(() => {

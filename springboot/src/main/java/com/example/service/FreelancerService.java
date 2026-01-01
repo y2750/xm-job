@@ -109,10 +109,26 @@ public class FreelancerService {
     }
 
     /**
-     * 根据ID查询
+     * 根据ID查询（包含用户基本信息）
      */
     public Freelancer selectById(Integer id) {
-        return freelancerMapper.selectById(id);
+        Freelancer freelancer = freelancerMapper.selectById(id);
+        if (freelancer == null) {
+            return null;
+        }
+        
+        // 加载用户基本信息
+        if (freelancer.getUserId() != null) {
+            User user = userMapper.selectById(freelancer.getUserId());
+            if (user != null) {
+                freelancer.setUserName(user.getName());
+                freelancer.setUserAvatar(user.getAvatar());
+                freelancer.setUserEmail(user.getEmail());
+                freelancer.setUserPhone(user.getPhone());
+            }
+        }
+        
+        return freelancer;
     }
 
     /**
@@ -151,6 +167,37 @@ public class FreelancerService {
         }
         
         return freelancer;
+    }
+    
+    /**
+     * 更新经验等级（根据完成项目数自动计算）
+     */
+    public void updateExperienceLevel(Integer freelancerId) {
+        Freelancer freelancer = freelancerMapper.selectById(freelancerId);
+        if (freelancer == null) {
+            return;
+        }
+        
+        Integer completedProjects = freelancer.getCompletedProjects();
+        if (completedProjects == null) {
+            completedProjects = 0;
+        }
+        
+        String experienceLevel;
+        if (completedProjects == 0) {
+            experienceLevel = "NEWBIE";
+        } else if (completedProjects <= 2) {
+            experienceLevel = "NEWBIE";
+        } else if (completedProjects <= 5) {
+            experienceLevel = "JUNIOR";
+        } else if (completedProjects <= 10) {
+            experienceLevel = "SENIOR";
+        } else {
+            experienceLevel = "EXPERT";
+        }
+        
+        freelancer.setExperienceLevel(experienceLevel);
+        freelancerMapper.updateById(freelancer);
     }
 
     /**
